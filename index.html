@@ -1,0 +1,1358 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Weekmark</title>
+<meta name="referrer" content="no-referrer">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<meta name="description" content="Personal weekly goals and rewards tracker">
+<meta name="theme-color" content="#0e1013">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Schibsted+Grotesk:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: a fixed rail of sections on the left, one wide working column; the week is a ledger of seven day columns */
+:root{
+  --bg:#0e1013; --panel:#15181c; --panel-2:#1b1f24; --line:#272c33; --line-2:#363d46;
+  --fg:#e6e8eb; --muted:#9aa1ab; --faint:#69717c;
+  --accent:#a9c1dc; --accent-strong:#cfdcec; --accent-wash:rgba(169,193,220,.13); --on-accent:#0e1013;
+  --good:#86c7a1; --warn:#dcb874; --bad:#e2918b;
+  --good-wash:rgba(134,199,161,.15); --warn-wash:rgba(220,184,116,.15); --bad-wash:rgba(226,145,139,.14);
+  --shadow:0 18px 60px rgba(0,0,0,.5);
+  --ui:'Schibsted Grotesk', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --mono:'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  color-scheme:dark;
+}
+@media (prefers-color-scheme: light){
+  :root:not([data-theme="dark"]){
+    --bg:#f3f4f6; --panel:#ffffff; --panel-2:#eceff2; --line:#dde1e6; --line-2:#c7cdd5;
+    --fg:#15181c; --muted:#58606b; --faint:#8a919b;
+    --accent:#36577c; --accent-strong:#243f5e; --accent-wash:rgba(54,87,124,.10); --on-accent:#ffffff;
+    --good:#2c8653; --warn:#9b6d17; --bad:#b4463e;
+    --good-wash:rgba(44,134,83,.11); --warn-wash:rgba(155,109,23,.11); --bad-wash:rgba(180,70,62,.10);
+    --shadow:0 18px 50px rgba(20,30,45,.18); color-scheme:light;
+  }
+}
+:root[data-theme="light"]{
+  --bg:#f3f4f6; --panel:#ffffff; --panel-2:#eceff2; --line:#dde1e6; --line-2:#c7cdd5;
+  --fg:#15181c; --muted:#58606b; --faint:#8a919b;
+  --accent:#36577c; --accent-strong:#243f5e; --accent-wash:rgba(54,87,124,.10); --on-accent:#ffffff;
+  --good:#2c8653; --warn:#9b6d17; --bad:#b4463e;
+  --good-wash:rgba(44,134,83,.11); --warn-wash:rgba(155,109,23,.11); --bad-wash:rgba(180,70,62,.10);
+  --shadow:0 18px 50px rgba(20,30,45,.18); color-scheme:light;
+}
+:root[data-theme="dark"]{
+  --bg:#0e1013; --panel:#15181c; --panel-2:#1b1f24; --line:#272c33; --line-2:#363d46;
+  --fg:#e6e8eb; --muted:#9aa1ab; --faint:#69717c;
+  --accent:#a9c1dc; --accent-strong:#cfdcec; --accent-wash:rgba(169,193,220,.13); --on-accent:#0e1013;
+  --good:#86c7a1; --warn:#dcb874; --bad:#e2918b;
+  --good-wash:rgba(134,199,161,.15); --warn-wash:rgba(220,184,116,.15); --bad-wash:rgba(226,145,139,.14);
+  --shadow:0 18px 60px rgba(0,0,0,.5); color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{min-height:100%}
+body{background:var(--bg);color:var(--fg);font-family:var(--ui);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
+button,input,select,textarea{font:inherit;color:inherit}
+h1,h2,h3{margin:0;text-wrap:balance;font-weight:600;letter-spacing:-.01em}
+p{margin:0}
+a{color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.num,.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.eyebrow{font-size:11.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);font-weight:500}
+.muted{color:var(--muted)} .faint{color:var(--faint)}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+/* shell */
+.app{display:grid;grid-template-columns:224px minmax(0,1fr);min-height:100vh}
+.rail{position:sticky;top:0;height:100vh;border-right:1px solid var(--line);padding:22px 14px 18px max(14px,env(safe-area-inset-left,0px));display:flex;flex-direction:column;gap:22px;background:var(--bg)}
+.brand{display:flex;align-items:center;gap:10px;padding:0 8px}
+.brand-mark{width:26px;height:26px;border-radius:7px;border:1.5px solid var(--accent);display:grid;grid-template-columns:repeat(4,1fr);gap:2px;padding:4px}
+.brand-mark i{background:var(--accent);border-radius:1px;opacity:.35}
+.brand-mark i.on{opacity:1}
+.brand b{font-size:17px;letter-spacing:-.02em;font-weight:700}
+.nav{display:flex;flex-direction:column;gap:2px}
+.nav a{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;color:var(--muted);text-decoration:none;font-weight:500;white-space:nowrap}
+.nav a:hover{color:var(--fg);background:var(--panel)}
+.nav a[aria-current="page"]{color:var(--fg);background:var(--panel-2)}
+.nav a .k{font-family:var(--mono);font-size:11px;color:var(--faint);width:14px}
+.rail-foot{margin-top:auto;display:flex;flex-direction:column;gap:6px;padding:0 8px;font-size:12.5px}
+.savestate{display:flex;align-items:center;gap:7px;color:var(--muted)}
+.savestate::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--good)}
+.savestate[data-s="saving"]::before{background:var(--warn)}
+.savestate[data-s="error"]::before{background:var(--bad)}
+.savestate[data-s="offline"]::before{background:var(--warn)}
+.who{color:var(--faint);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+main{min-width:0;padding-block:28px 80px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.wrap{max-width:1080px;margin:0 auto;display:flex;flex-direction:column;gap:22px}
+
+@media (max-width:820px){
+  .app{grid-template-columns:minmax(0,1fr)}
+  body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:30;background:var(--bg)}
+  .rail{position:sticky;top:env(safe-area-inset-top,0px);height:auto;z-index:20;flex-direction:row;align-items:center;gap:8px;padding:10px max(12px,env(safe-area-inset-right,0px)) 10px max(12px,env(safe-area-inset-left,0px));border-right:0;border-bottom:1px solid var(--line)}
+  .brand b{display:none}
+  .brand{padding:0}
+  .nav{flex-direction:row;overflow-x:auto;scrollbar-width:none;min-width:0;flex:1}
+  .nav::-webkit-scrollbar{display:none}
+  .nav a{padding:7px 10px;font-size:14px}
+  .nav a .k{display:none}
+  .rail-foot{margin:0;padding:0}
+  .rail-foot .who,.rail-foot .savestate span{display:none}
+  main{padding-block:18px 80px}
+}
+
+/* buttons & inputs */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:36px;padding:7px 14px;border-radius:8px;border:1px solid var(--line-2);background:var(--panel);cursor:pointer;font-weight:500;font-size:14px;white-space:nowrap}
+.btn:hover{border-color:var(--faint)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.btn.primary:hover{background:var(--accent-strong)}
+.btn.ghost{background:transparent}
+.btn.danger{color:var(--bad);border-color:color-mix(in srgb,var(--bad) 45%,var(--line))}
+.btn.sm{min-height:30px;padding:4px 10px;font-size:13px}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.icon{width:32px;height:32px;border-radius:8px;border:1px solid var(--line-2);background:var(--panel);cursor:pointer;display:inline-grid;place-items:center;font-size:15px;line-height:1;color:var(--muted)}
+.icon:hover{color:var(--fg);border-color:var(--faint)}
+.icon:disabled{opacity:.35;cursor:not-allowed}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.spacer{flex:1}
+input[type=text],input[type=password],input[type=number],input[type=date],select,textarea{background:var(--bg);border:1px solid var(--line-2);border-radius:8px;padding:8px 10px;min-height:38px;width:100%}
+textarea{min-height:84px;resize:vertical;line-height:1.5}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-wash)}
+label.f{display:flex;flex-direction:column;gap:5px;font-size:13px;color:var(--muted);font-weight:500;min-width:0}
+.err{color:var(--bad);font-size:12.5px;min-height:0}
+.err:empty{display:none}
+.chk{display:flex;align-items:center;gap:8px;font-size:14px;cursor:pointer}
+.chk input{width:16px;height:16px;accent-color:var(--accent)}
+
+/* panels */
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:12px}
+.pad{padding:18px}
+.sec-h{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+.sec-h h2{font-size:17px}
+.note{font-size:13px;color:var(--muted)}
+.banner{display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px;padding:12px 16px;border-radius:10px;border:1px solid var(--line-2);background:var(--panel-2);font-size:14px}
+.banner.warn{border-color:color-mix(in srgb,var(--warn) 45%,var(--line));background:var(--warn-wash)}
+.banner.err{border-color:color-mix(in srgb,var(--bad) 45%,var(--line));background:var(--bad-wash)}
+.banner p{flex:1;min-width:220px}
+
+/* week header */
+.wk{display:flex;flex-wrap:wrap;align-items:flex-end;gap:14px 20px;justify-content:space-between}
+.wk h1{font-size:clamp(24px,3.4vw,32px);letter-spacing:-.025em;font-weight:700}
+.wk-nav{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.pill{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:500;padding:3px 9px;border-radius:999px;border:1px solid var(--line-2);color:var(--muted);white-space:nowrap}
+.pill::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.pill.live{color:var(--accent);border-color:color-mix(in srgb,var(--accent) 40%,var(--line))}
+.pill.final{color:var(--good);border-color:color-mix(in srgb,var(--good) 40%,var(--line))}
+.pill.ended{color:var(--warn);border-color:color-mix(in srgb,var(--warn) 40%,var(--line))}
+
+/* summary */
+.summary{display:grid;grid-template-columns:minmax(200px,260px) minmax(0,1fr);gap:0;overflow:hidden}
+.score{padding:22px;border-right:1px solid var(--line);display:flex;flex-direction:column;gap:6px}
+.big{font-family:var(--mono);font-size:56px;line-height:1;font-weight:500;letter-spacing:-.04em}
+.big small{font-size:24px;color:var(--muted);margin-left:2px}
+.sum-r{padding:22px;display:flex;flex-direction:column;gap:18px;min-width:0}
+.meter{position:relative;height:12px;border-radius:999px;background:var(--panel-2);border:1px solid var(--line)}
+.meter .fill{position:absolute;inset:0 auto 0 0;border-radius:999px;background:var(--accent)}
+.meter .tick{position:absolute;top:-5px;bottom:-5px;width:2px;background:var(--fg);opacity:.55;border-radius:1px}
+.tiers-legend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:12.5px;color:var(--muted)}
+.tiers-legend b{font-family:var(--mono);font-weight:500;color:var(--fg)}
+.tiers-legend .got{color:var(--good)}
+.facts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin:0}
+.facts div{display:flex;flex-direction:column;gap:2px;min-width:0}
+.facts dt{font-size:12px;color:var(--muted)}
+.facts dd{margin:0;font-weight:600;font-size:15px}
+.facts dd.num{font-weight:500}
+@media (max-width:640px){
+  .summary{grid-template-columns:minmax(0,1fr)}
+  .score{border-right:0;border-bottom:1px solid var(--line)}
+  .big{font-size:48px}
+  .facts{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+}
+
+/* ledger */
+.ledger{container-type:inline-size}
+.lg-head,.lg-row{display:grid;grid-template-columns:minmax(0,1fr) repeat(7,54px) 84px;gap:6px;align-items:center;padding:10px 14px}
+.lg-head{border-bottom:1px solid var(--line);padding-block:12px}
+.lg-day{text-align:center;font-size:12px;color:var(--muted);line-height:1.25}
+.lg-day b{display:block;font-family:var(--mono);font-weight:500;color:var(--fg);font-size:13px}
+.lg-day.today b{color:var(--on-accent);background:var(--accent);border-radius:6px;display:inline-block;padding:0 6px}
+.lg-day .dp{font-family:var(--mono);font-size:11px;color:var(--faint);margin-top:2px;display:block}
+.lg-res-h{text-align:right;font-size:12px;color:var(--muted)}
+.lg-row{border-bottom:1px solid var(--line)}
+.lg-row:last-child{border-bottom:0}
+.lg-row.archived{opacity:.5}
+.tname{min-width:0;display:flex;flex-direction:column;gap:3px}
+.tname b{font-weight:600;font-size:14.5px;overflow-wrap:anywhere}
+.tmeta{font-size:12px;color:var(--muted);display:flex;flex-wrap:wrap;gap:2px 8px}
+.tmeta .op{font-family:var(--mono);color:var(--fg)}
+.prog{height:4px;border-radius:2px;background:var(--panel-2);overflow:hidden;margin-top:4px;max-width:220px}
+.prog i{display:block;height:100%;background:var(--accent)}
+.cellw{position:relative;height:40px}
+.cellw::after{position:absolute;top:-5px;right:-4px;font-size:10px;line-height:15px;width:15px;height:15px;text-align:center;border-radius:50%;pointer-events:none;font-weight:700}
+.cellw[data-st="done"]::after{content:"✓";background:var(--good);color:var(--bg)}
+.cellw[data-st="partial"]::after{content:"½";background:var(--warn);color:var(--bg)}
+.cellw[data-st="missed"]::after{content:"×";background:var(--bad);color:var(--bg)}
+.cell{width:100%;height:40px;border-radius:8px;border:1px solid var(--line-2);background:var(--bg);text-align:center;font-family:var(--mono);font-size:13.5px;padding:0 2px}
+.cellw[data-st="done"] .cell{border-color:color-mix(in srgb,var(--good) 55%,var(--line));background:var(--good-wash)}
+.cellw[data-st="partial"] .cell{border-color:color-mix(in srgb,var(--warn) 55%,var(--line));background:var(--warn-wash)}
+.cellw[data-st="missed"] .cell{border-color:color-mix(in srgb,var(--bad) 50%,var(--line));background:var(--bad-wash)}
+.cellw[data-st="today"] .cell{border-color:var(--accent);border-style:dashed}
+.cellw[data-st="future"] .cell{border-style:dashed;opacity:.8}
+input.cell{-moz-appearance:textfield;appearance:textfield}
+input.cell::-webkit-outer-spin-button,input.cell::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+button.cell{cursor:pointer;font-size:16px;color:var(--muted)}
+button.cell[aria-pressed="true"]{color:var(--good);font-weight:700}
+.cell.na{display:grid;place-items:center;border-style:solid;border-color:transparent;background:repeating-linear-gradient(135deg,transparent 0 5px,var(--panel-2) 5px 6px);color:var(--faint)}
+.res{text-align:right;display:flex;flex-direction:column;align-items:flex-end;gap:1px}
+.res b{font-family:var(--mono);font-weight:500;font-size:14px}
+.res span{font-size:11.5px;color:var(--muted);white-space:nowrap}
+.res.done b{color:var(--good)} .res.partial b{color:var(--warn)} .res.missed b{color:var(--bad)}
+.lg-foot{display:flex;flex-wrap:wrap;gap:8px 18px;padding:12px 14px;border-top:1px solid var(--line);font-size:12px;color:var(--muted)}
+.lg-foot .k{display:inline-flex;align-items:center;gap:6px}
+.lg-foot .k i{width:13px;height:13px;border-radius:50%;display:inline-grid;place-items:center;font-size:9px;font-style:normal;font-weight:700;color:var(--bg)}
+.dstrip{display:grid;grid-template-columns:minmax(0,1fr) repeat(7,54px) 84px;gap:6px;padding:12px 14px;border-top:1px solid var(--line);align-items:end}
+.dstrip .lbl{font-size:12px;color:var(--muted)}
+.dbar{display:flex;flex-direction:column;align-items:center;gap:4px}
+.dbar .b{width:100%;height:34px;border-radius:5px;background:var(--panel-2);position:relative;overflow:hidden}
+.dbar .b i{position:absolute;left:0;right:0;bottom:0;background:var(--accent);opacity:.75}
+.dbar span{font-family:var(--mono);font-size:11.5px;color:var(--muted)}
+@container (max-width:700px){
+  .lg-head{grid-template-columns:repeat(7,minmax(0,1fr))}
+  .lg-head .lg-name,.lg-head .lg-res-h{display:none}
+  .lg-row{grid-template-columns:repeat(7,minmax(0,1fr));row-gap:10px}
+  .lg-row .tname{grid-column:1 / 6}
+  .lg-row .res{grid-column:6 / 8;grid-row:1}
+  .dstrip{grid-template-columns:repeat(7,minmax(0,1fr))}
+  .dstrip .lbl,.dstrip .sp{display:none}
+}
+
+/* rollover */
+.plan-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.plan-opt{border:1px solid var(--line);border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:10px;background:var(--bg);min-width:0}
+.plan-opt h3{font-size:15px}
+.plan-opt .list{font-size:13px;color:var(--muted);display:flex;flex-direction:column;gap:4px;max-height:180px;overflow:auto}
+.plan-opt .go{margin-top:auto;align-self:flex-start}
+@media (max-width:640px){.plan-grid{grid-template-columns:minmax(0,1fr)}}
+
+/* lists (planner, recurring, templates, history) */
+.list-rows{display:flex;flex-direction:column}
+.lrow{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;padding:12px 16px;border-bottom:1px solid var(--line)}
+.lrow:last-child{border-bottom:0}
+.lrow .tname{flex:1;min-width:200px}
+.lrow .acts{display:flex;gap:6px;flex-wrap:wrap}
+.tag{font-size:11.5px;padding:2px 8px;border-radius:999px;background:var(--panel-2);color:var(--muted);white-space:nowrap}
+.tag.acc{background:var(--accent-wash);color:var(--accent)}
+.tag.good{background:var(--good-wash);color:var(--good)}
+.tag.warn{background:var(--warn-wash);color:var(--warn)}
+.empty{padding:28px 18px;text-align:center;color:var(--muted);display:flex;flex-direction:column;gap:12px;align-items:center}
+
+/* history */
+.hrow{display:grid;grid-template-columns:110px minmax(0,1fr) 70px minmax(120px,190px) auto;gap:14px;align-items:center;padding:12px 16px;border-bottom:1px solid var(--line)}
+.hrow:last-child{border-bottom:0}
+.hbar{height:8px;border-radius:4px;background:var(--panel-2);overflow:hidden}
+.hbar i{display:block;height:100%;background:var(--accent)}
+@media (max-width:720px){.hrow{grid-template-columns:minmax(0,1fr) auto}.hrow .hbar-c{grid-column:1 / -1;order:5}}
+.kpis{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:0}
+.kpis div{padding:16px 18px;border-right:1px solid var(--line);display:flex;flex-direction:column;gap:4px}
+.kpis div:last-child{border-right:0}
+.kpis b{font-family:var(--mono);font-weight:500;font-size:24px;letter-spacing:-.02em}
+.kpis span{font-size:12px;color:var(--muted)}
+@media (max-width:760px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.kpis div{border-bottom:1px solid var(--line)}}
+.chart{width:100%;height:auto;display:block}
+.charts{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:14px}
+@media (max-width:860px){.charts{grid-template-columns:minmax(0,1fr)}}
+.tbl-wrap{overflow-x:auto}
+table.t{width:100%;border-collapse:collapse;font-size:13.5px}
+table.t th{text-align:left;font-weight:500;color:var(--muted);font-size:12px;padding:10px 16px;border-bottom:1px solid var(--line)}
+table.t td{padding:10px 16px;border-bottom:1px solid var(--line);vertical-align:middle}
+table.t tr:last-child td{border-bottom:0}
+table.t td.n{font-family:var(--mono);text-align:right}
+table.t th.n{text-align:right}
+
+/* rewards */
+.tier{display:grid;grid-template-columns:100px minmax(0,1fr) minmax(0,1.4fr) auto;gap:10px;align-items:start;padding:12px 16px;border-bottom:1px solid var(--line)}
+@media (max-width:720px){.tier{grid-template-columns:100px minmax(0,1fr)}.tier .wide{grid-column:1 / -1}}
+.ranges{font-size:13.5px;display:flex;flex-direction:column;gap:4px;padding:14px 16px}
+.ranges .num{color:var(--fg)}
+
+/* settings */
+.set-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+@media (max-width:760px){.set-grid{grid-template-columns:minmax(0,1fr)}}
+.set-grid .panel{display:flex;flex-direction:column;gap:12px}
+
+/* dialogs */
+dialog{border:1px solid var(--line-2);border-radius:14px;background:var(--panel);color:var(--fg);padding:0;width:min(640px,calc(100vw - 24px));max-height:calc(100dvh - 24px);box-shadow:var(--shadow)}
+dialog::backdrop{background:rgba(5,7,10,.62)}
+dialog form{display:flex;flex-direction:column;max-height:calc(100dvh - 26px)}
+.dlg-h{display:flex;align-items:center;gap:12px;padding:16px 18px;border-bottom:1px solid var(--line)}
+.dlg-h h2{font-size:17px;flex:1}
+.dlg-b{padding:18px;display:flex;flex-direction:column;gap:16px;overflow:auto}
+.dlg-f{display:flex;justify-content:flex-end;flex-wrap:wrap;gap:8px;padding:14px 18px;border-top:1px solid var(--line)}
+.g2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.g3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+@media (max-width:520px){.g2,.g3{grid-template-columns:minmax(0,1fr)}}
+fieldset{border:0;padding:0;margin:0;min-width:0;display:flex;flex-direction:column;gap:8px}
+legend{font-size:13px;color:var(--muted);font-weight:500;padding:0;margin-bottom:6px}
+.types{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px}
+.opt{position:relative}
+.opt input{position:absolute;opacity:0;inset:0;cursor:pointer}
+.opt span{display:flex;flex-direction:column;gap:2px;padding:10px 12px;border:1px solid var(--line-2);border-radius:9px;font-size:13.5px;font-weight:600;height:100%}
+.opt span small{font-weight:400;color:var(--muted);font-size:12px;line-height:1.35}
+.opt input:checked+span{border-color:var(--accent);background:var(--accent-wash)}
+.opt input:focus-visible+span{outline:2px solid var(--accent);outline-offset:2px}
+.days-pick{display:flex;flex-wrap:wrap;gap:6px}
+.days-pick .opt span{width:46px;align-items:center;padding:8px 0;font-weight:500}
+.seg{display:flex;flex-wrap:wrap;gap:6px}
+.seg .opt span{padding:8px 12px;font-weight:500}
+.sub-sec{border-top:1px solid var(--line);padding-top:16px}
+
+/* toast */
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(20px + env(safe-area-inset-bottom,0px));z-index:50;background:var(--fg);color:var(--bg);padding:10px 14px;border-radius:10px;display:flex;align-items:center;gap:14px;font-size:14px;box-shadow:var(--shadow);max-width:calc(100vw - 32px)}
+.toast[hidden]{display:none}
+.toast.err{background:var(--bad);color:var(--bg)}
+.toast button{background:transparent;border:1px solid currentColor;border-radius:7px;padding:3px 10px;cursor:pointer;color:inherit;font-weight:600}
+
+/* gate */
+.gate{min-height:100vh;display:grid;place-items:center;padding:24px max(16px,env(safe-area-inset-right,0px)) 24px max(16px,env(safe-area-inset-left,0px))}
+.gate .panel{max-width:420px;width:100%;padding:28px;display:flex;flex-direction:column;gap:16px}
+.gate h1{font-size:26px;letter-spacing:-.02em}
+@media (prefers-reduced-motion: no-preference){.meter .fill,.prog i,.hbar i{transition:width .35s ease}}
+</style>
+
+<div id="root"></div>
+<dialog id="dlg"></dialog>
+<dialog id="ask"></dialog>
+<div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+
+<script>
+(function(){
+'use strict';
+/* ---------- constants ---------- */
+const APP='weekmark', VERSION=1;
+const WD=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+const WDL=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+const MON=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const TYPES={
+  check:{label:'Checkbox',hint:'Done or not done on each scheduled day',daily:true},
+  daily_num:{label:'Daily number',hint:'A value on each scheduled day, e.g. 3 L water',daily:true,num:true},
+  week_num:{label:'Weekly total',hint:'Values from any day add up, e.g. 100 pages',num:true},
+  occ:{label:'Times per week',hint:'Count occurrences, e.g. exercise 3 times',num:true},
+  once:{label:'Once this week',hint:'Done once, on any day of the week'}
+};
+const OPS={'>=':'≥','>':'>','<=':'≤','<':'<','=':'='};
+const OPWORD={'>=':'At least (≥)','>':'More than (>)','<=':'At most (≤)','<':'Less than (<)','=':'Exactly (=)'};
+const CATS=['Work','Fitness','Learning','Health','Family','Personal','Finance'];
+const VIEWS=[['dashboard','Dashboard'],['planner','Weekly planner'],['recurring','Recurring tasks'],['templates','Templates'],['history','History & reports'],['rewards','Rewards'],['settings','Settings & backup']];
+
+/* ---------- small helpers ---------- */
+const $=(s,r=document)=>r.querySelector(s);
+const $$=(s,r=document)=>Array.from(r.querySelectorAll(s));
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,8);
+const clone=o=>JSON.parse(JSON.stringify(o));
+const pad=n=>String(n).padStart(2,'0');
+const ds=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const pd=s=>{const a=s.split('-').map(Number);return new Date(a[0],a[1]-1,a[2]);};
+const addDays=(s,n)=>{const d=pd(s);d.setDate(d.getDate()+n);return ds(d);};
+const today=()=>ds(new Date());
+const dow=s=>pd(s).getDay();
+const fmtD=s=>{const d=pd(s);return `${MON[d.getMonth()]} ${d.getDate()}`;};
+const fmtDY=s=>{const d=pd(s);return `${MON[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;};
+const fmtNum=v=>{if(v==null||isNaN(v))return '—';const r=Math.round(v*100)/100;return String(r);};
+const fmtPct=v=>v==null?'—':(Math.round(v*10)/10).toFixed(1);
+const lsGet=k=>{try{return localStorage.getItem(k);}catch(e){return null;}};
+const lsSet=(k,v)=>{try{localStorage.setItem(k,v);}catch(e){}};
+function weekStartOf(s){const d=pd(s);const diff=(d.getDay()-S.meta.settings.weekStart+7)%7;d.setDate(d.getDate()-diff);return ds(d);}
+const weekDays=ws=>[0,1,2,3,4,5,6].map(i=>addDays(ws,i));
+function isoWeek(ws){const d=pd(ws);d.setDate(d.getDate()+3);const day=(d.getDay()+6)%7;d.setDate(d.getDate()-day+3);const j4=new Date(d.getFullYear(),0,4);return 1+Math.round(((d-j4)/864e5-3+((j4.getDay()+6)%7))/7);}
+function fmtRange(ws){const a=pd(ws),b=pd(addDays(ws,6));if(a.getMonth()===b.getMonth())return `${MON[a.getMonth()]} ${a.getDate()} – ${b.getDate()}, ${b.getFullYear()}`;if(a.getFullYear()===b.getFullYear())return `${MON[a.getMonth()]} ${a.getDate()} – ${MON[b.getMonth()]} ${b.getDate()}, ${b.getFullYear()}`;return `${fmtDY(ws)} – ${fmtDY(addDays(ws,6))}`;}
+const wkLabel=ws=>`Week ${isoWeek(ws)} · ${fmtD(ws)}`;
+
+/* ---------- state ---------- */
+const S={meta:null,weeks:{},ws:null,view:'dashboard',kv:null,needRender:false,saveState:'ok',dirty:new Set(),timer:null,undo:null,ui:{histYear:'all',histMonth:'all'},started:false,editor:null};
+function defaultMeta(){return {version:VERSION,created:Date.now(),settings:{weekStart:1,theme:'dark',example:false},defs:[],templates:[],rewards:{mode:'single',tiers:[{id:uid(),min:80,name:'Weekly reward',desc:'Something you look forward to',notes:''}]}};}
+function normMeta(m){const d=defaultMeta();m=m||d;m.settings=Object.assign({},d.settings,m.settings||{});m.defs=m.defs||[];m.templates=m.templates||[];m.rewards=m.rewards||d.rewards;if(!m.rewards.tiers||!m.rewards.tiers.length)m.rewards=d.rewards;m.version=VERSION;return m;}
+function normWeek(w){w.instances=w.instances||[];w.records=w.records||{};w.skip=w.skip||{};w.status=w.status||'active';w.reflection=w.reflection||'';return w;}
+
+/* ---------- storage backends ---------- */
+const LocalKV={db:null,mem:{},kind:'mem',
+  async open(){try{this.db=await new Promise((res,rej)=>{const r=indexedDB.open('weekmark',1);r.onupgradeneeded=()=>r.result.createObjectStore('kv');r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);});this.kind='idb';}catch(e){this.db=null;try{localStorage.setItem('wm-probe','1');localStorage.removeItem('wm-probe');this.kind='ls';}catch(e2){this.kind='mem';}}},
+  async all(){if(this.kind==='idb')return new Promise((res,rej)=>{const out={};const req=this.db.transaction('kv').objectStore('kv').openCursor();req.onsuccess=()=>{const c=req.result;if(c){out[c.key]=c.value;c.continue();}else res(out);};req.onerror=()=>rej(req.error);});
+    if(this.kind==='ls'){const out={};for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&k.startsWith('wm:')){try{out[k.slice(3)]=JSON.parse(localStorage.getItem(k));}catch(e){}}}return out;}
+    return clone(this.mem);},
+  async put(k,v){if(this.kind==='idb')return new Promise((res,rej)=>{const tx=this.db.transaction('kv','readwrite');tx.objectStore('kv').put(v,k);tx.oncomplete=()=>res();tx.onerror=()=>rej(tx.error);tx.onabort=()=>rej(tx.error||new Error('Storage is full or blocked'));});
+    if(this.kind==='ls'){localStorage.setItem('wm:'+k,JSON.stringify(v));return;} this.mem[k]=clone(v);},
+  async del(k){if(this.kind==='idb')return new Promise((res,rej)=>{const tx=this.db.transaction('kv','readwrite');tx.objectStore('kv').delete(k);tx.oncomplete=()=>res();tx.onerror=()=>rej(tx.error);});
+    if(this.kind==='ls'){localStorage.removeItem('wm:'+k);return;} delete this.mem[k];}
+};
+const wkey=ws=>'week_'+ws;
+/* ---------- private sync: your own private GitHub repo, end-to-end encrypted ---------- */
+// Every record is gzipped and encrypted (AES-256-GCM, key derived from your passphrase with PBKDF2)
+// on this device before it is uploaded. File names are hashed. GitHub only ever stores ciphertext.
+const TE=new TextEncoder(),TD=new TextDecoder();
+const b64=u=>{let s='';const a=u instanceof Uint8Array?u:new Uint8Array(u);for(let i=0;i<a.length;i+=32768)s+=String.fromCharCode.apply(null,a.subarray(i,i+32768));return btoa(s);};
+const unb64=s=>{const b=atob(String(s).replace(/\s/g,''));const a=new Uint8Array(b.length);for(let i=0;i<b.length;i++)a[i]=b.charCodeAt(i);return a;};
+const b64u=u=>b64(u).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+const unb64u=s=>unb64(s.replace(/-/g,'+').replace(/_/g,'/')+'='.repeat((4-s.length%4)%4));
+const hex=u=>Array.from(new Uint8Array(u),x=>x.toString(16).padStart(2,'0')).join('');
+const cat=(a,b)=>{const o=new Uint8Array(a.length+b.length);o.set(a);o.set(b,a.length);return o;};
+const SYNC_DIR='weekmark/',KEYFILE=SYNC_DIR+'key.json',CHECK='weekmark-ok';
+const Crypt={
+  async derive(pass,salt){const base=await crypto.subtle.importKey('raw',TE.encode(pass),'PBKDF2',false,['deriveKey']);
+    return crypto.subtle.deriveKey({name:'PBKDF2',salt,iterations:310000,hash:'SHA-256'},base,{name:'AES-GCM',length:256},true,['encrypt','decrypt']);},
+  async seal(key,bytes){const iv=crypto.getRandomValues(new Uint8Array(12));return cat(iv,new Uint8Array(await crypto.subtle.encrypt({name:'AES-GCM',iv},key,bytes)));},
+  async open(key,bytes){return new Uint8Array(await crypto.subtle.decrypt({name:'AES-GCM',iv:bytes.slice(0,12)},key,bytes.slice(12)));},
+  async pipe(bytes,T){return new Uint8Array(await new Response(new Blob([bytes]).stream().pipeThrough(new T('gzip'))).arrayBuffer());},
+  async pack(obj){const raw=TE.encode(JSON.stringify(obj));if(window.CompressionStream)return cat(new Uint8Array([1]),await this.pipe(raw,CompressionStream));return cat(new Uint8Array([0]),raw);},
+  async unpack(bytes){let b=bytes.slice(1);if(bytes[0]===1){if(!window.DecompressionStream)throw new Error('This browser is too old to read synced data. Update it.');b=await this.pipe(b,DecompressionStream);}return JSON.parse(TD.decode(b));},
+  async sha(alg,str){return hex(await crypto.subtle.digest(alg,TE.encode(str)));}
+};
+function ghMsg(status,m){
+  if(status===401)return 'GitHub rejected the access token (it may have expired). Paste a new token in Settings.';
+  if(status===403&&/rate limit/i.test(m))return 'GitHub is limiting requests for a few minutes. Sync will retry.';
+  if(status===403)return 'The token is not allowed to write to this repository. Give it “Contents: Read and write”.';
+  if(status===404)return 'Repository not found, or the token has no access to it.';
+  return `GitHub said: ${m||('error '+status)}`;}
+const GH={
+  async req(cfg,method,path,body){
+    const h={'Authorization':'Bearer '+cfg.token,'Accept':'application/vnd.github+json'};if(body)h['Content-Type']='application/json';
+    const r=await fetch(`https://api.github.com/repos/${cfg.owner}/${cfg.repo}${path}`,{method,cache:'no-store',headers:h,body:body?JSON.stringify(body):undefined});
+    if(!r.ok){let m='';try{m=(await r.json()).message||'';}catch(e){}const e=new Error(ghMsg(r.status,m));e.status=r.status;e.gh=m;throw e;}
+    return r.status===204?null:r.json();}
+};
+async function pmap(items,n,fn){const out=new Array(items.length);let i=0;await Promise.all(Array.from({length:Math.min(n,items.length)},async()=>{while(i<items.length){const j=i++;out[j]=await fn(items[j]);}}));return out;}
+const freshSyncState=()=>({head:null,tree:null,files:{},stamps:{},pending:[],last:0});
+
+const Sync={cfg:null,key:null,st:freshSyncState(),busy:null,again:false,timer:null,status:'off',err:null,paths:{},
+  on(){return !!(this.cfg&&this.key);},
+  async init(saved){
+    let c=null;try{c=JSON.parse(lsGet('wm-sync')||'null');}catch(e){}
+    if(!c||!c.token||!c.key)return;
+    try{this.key=await crypto.subtle.importKey('raw',unb64(c.key),{name:'AES-GCM'},true,['encrypt','decrypt']);this.cfg=c;}catch(e){return;}
+    this.st=Object.assign(freshSyncState(),saved||{});this.status='ok';
+  },
+  save(){return S.kv.put('_sync',this.st).catch(()=>{});},
+  async pathFor(k){if(!this.paths[k])this.paths[k]=SYNC_DIR+(await Crypt.sha('SHA-256',this.cfg.salt+':'+k)).slice(0,32)+'.bin';return this.paths[k];},
+  mark(keys){if(!this.on())return;const t=Date.now();keys.forEach(k=>{this.st.stamps[k]=t;if(!this.st.pending.includes(k))this.st.pending.push(k);});this.save();this.soon(1500);},
+  soon(ms){clearTimeout(this.timer);this.timer=setTimeout(()=>this.run(),ms);},
+  run(){if(!this.on())return Promise.resolve();
+    if(this.busy){this.again=true;return this.busy;}
+    this.status='busy';paintSave();
+    this.busy=(async()=>{try{do{this.again=false;await this.once();}while(this.again);this.err=null;this.status='ok';this.st.last=Date.now();}
+      catch(e){this.err=e.message||String(e);this.status=(e.name==='TypeError'||navigator.onLine===false)?'offline':'error';}
+      finally{this.busy=null;await this.save();paintSave();paintSyncInfo();if(S.needRender)softRender();}})();
+    return this.busy;},
+  async once(){
+    for(let n=0;n<5;n++){
+      const ref=await GH.req(this.cfg,'GET','/git/ref/heads/'+this.cfg.branch);
+      if(ref.object.sha!==this.st.head)await this.pull(ref.object.sha);
+      if(!this.st.pending.length)return;
+      if(await this.push())return;
+    }
+    throw new Error('Another device kept changing the data at the same time. Sync will retry.');
+  },
+  async pull(head){
+    const c=await GH.req(this.cfg,'GET','/git/commits/'+head);
+    const t=await GH.req(this.cfg,'GET','/git/trees/'+c.tree.sha+'?recursive=1');
+    const files={},changed=[];
+    (t.tree||[]).forEach(e=>{if(e.type!=='blob'||!e.path.startsWith(SYNC_DIR)||!e.path.endsWith('.bin'))return;files[e.path]=e.sha;if(this.st.files[e.path]!==e.sha)changed.push(e);});
+    const recs=await pmap(changed,6,async e=>{const b=await GH.req(this.cfg,'GET','/git/blobs/'+e.sha);
+      try{return await Crypt.unpack(await Crypt.open(this.key,unb64(TD.decode(unb64(b.content)))));}catch(err){throw new Error('A synced file could not be decrypted. Was a different passphrase used on another device?');}});
+    for(const r of recs){if(!r||!r.k)continue;
+      if(S.dirty.has(r.k))continue;                                   // an unsaved local edit wins; it is pushed right after
+      const lt=this.st.stamps[r.k]||0;if(r.t<=lt)continue;            // we already have this version or a newer one
+      this.st.stamps[r.k]=r.t;this.st.pending=this.st.pending.filter(k=>k!==r.k);
+      await applyRemote(r.k,r.del?null:r.v);}
+    this.st.files=Object.assign({},this.st.files,files);Object.keys(this.st.files).forEach(p=>{if(!(p in files))delete this.st.files[p];});
+    this.st.head=head;this.st.tree=c.tree.sha;
+  },
+  async push(){
+    const keys=[...this.st.pending],sent={},entries=[];
+    for(const k of keys){const v=k==='meta'?S.meta:(k.startsWith('week_')?S.weeks[k.slice(5)]:undefined);
+      const rec={k,t:this.st.stamps[k]||Date.now()};if(v)rec.v=v;else rec.del=true;sent[k]=rec.t;
+      const text=b64(await Crypt.seal(this.key,await Crypt.pack(rec)));
+      const path=await this.pathFor(k);
+      entries.push({path,mode:'100644',type:'blob',content:text,_sha:await Crypt.sha('SHA-1',`blob ${text.length}\0${text}`)});}
+    const tree=await GH.req(this.cfg,'POST','/git/trees',{base_tree:this.st.tree,tree:entries.map(({_sha,...e})=>e)});
+    const commit=await GH.req(this.cfg,'POST','/git/commits',{message:'Weekmark sync',tree:tree.sha,parents:[this.st.head]});
+    try{await GH.req(this.cfg,'PATCH','/git/refs/heads/'+this.cfg.branch,{sha:commit.sha,force:false});}
+    catch(e){if(e.status===422||e.status===409)return false;throw e;}  // another device pushed first: pull and try again
+    this.st.head=commit.sha;this.st.tree=tree.sha;entries.forEach(e=>{this.st.files[e.path]=e._sha;});
+    this.st.pending=this.st.pending.filter(k=>!(k in sent)||this.st.stamps[k]!==sent[k]);
+    return true;
+  },
+  // Connect this device. Returns {fresh:true} if the repo had no Weekmark data yet.
+  async connect(full,token,pass){
+    const m=String(full).trim().replace(/^https?:\/\/github\.com\//,'').replace(/\.git$/,'').replace(/\/+$/,'').match(/^([\w.-]+)\/([\w.-]+)$/);
+    if(!m)throw new Error('Write the repository as owner/name, for example hazem/weekmark-data.');
+    const cfg={owner:m[1],repo:m[2],token:String(token).trim()};
+    if(!cfg.token)throw new Error('Paste your GitHub access token.');
+    if(!pass||pass.length<8)throw new Error('Use a passphrase of at least 8 characters.');
+    let info;try{info=await GH.req(cfg,'GET','');}catch(e){if(e.name==='TypeError')throw new Error('No connection to GitHub. Check your internet.');throw e;}
+    if(!info.private)throw new Error('This repository is public. Make it private on GitHub (Settings › General › Danger zone › Change visibility) and try again.');
+    if(info.permissions&&info.permissions.push===false)throw new Error('The token can read but not write this repository. Give it “Contents: Read and write”.');
+    cfg.branch=info.default_branch||'main';
+    let kf=null;try{kf=await GH.req(cfg,'GET','/contents/'+KEYFILE);}catch(e){if(e.status!==404)throw e;}
+    let key,fresh=false;
+    if(kf){const k=JSON.parse(TD.decode(unb64(kf.content)));if(k.app!=='weekmark')throw new Error('That repository holds something other than Weekmark data.');
+      cfg.salt=k.salt;key=await Crypt.derive(pass,unb64(k.salt));
+      try{const ok=TD.decode(await Crypt.open(key,unb64(k.check)));if(ok!==CHECK)throw 0;}catch(e){throw new Error('Wrong passphrase. Use the same passphrase you set on your first device.');}}
+    else{fresh=true;const salt=crypto.getRandomValues(new Uint8Array(16));cfg.salt=b64(salt);key=await Crypt.derive(pass,salt);
+      const body={app:'weekmark',v:1,kdf:'PBKDF2-SHA256-310000',cipher:'AES-256-GCM',salt:cfg.salt,check:b64(await Crypt.seal(key,TE.encode(CHECK)))};
+      await GH.req(cfg,'PUT','/contents/'+KEYFILE,{message:'Set up Weekmark sync',content:btoa(JSON.stringify(body,null,2))});}
+    cfg.key=b64(await crypto.subtle.exportKey('raw',key));
+    // Does the repo already hold records from another device?
+    const ref=await GH.req(cfg,'GET','/git/ref/heads/'+cfg.branch);const c=await GH.req(cfg,'GET','/git/commits/'+ref.object.sha);
+    const t=await GH.req(cfg,'GET','/git/trees/'+c.tree.sha+'?recursive=1');
+    const has=(t.tree||[]).some(e=>e.type==='blob'&&e.path.startsWith(SYNC_DIR)&&e.path.endsWith('.bin'));
+    return {cfg,key,hasData:has,fresh};
+  },
+  async adopt(r,mode){ // mode: 'upload' (first device), 'merge' (add this device's extra weeks), 'download' (replace this device's data)
+    this.cfg=r.cfg;this.key=r.key;this.paths={};lsSet('wm-sync',JSON.stringify(r.cfg));this.st=freshSyncState();
+    if(mode==='download'){const keys=['meta',...Object.keys(S.weeks).map(wkey)];for(const k of keys){try{await S.kv.del(k);}catch(e){}}
+      const th=S.meta.settings.theme;S.weeks={};S.meta=defaultMeta();S.meta.settings.theme=th;}
+    else{const t=mode==='merge'?1:Date.now();  // merge: the synced copy wins wherever both have the same item
+      ['meta',...Object.keys(S.weeks).map(wkey)].forEach(k=>{this.st.stamps[k]=t;this.st.pending.push(k);});}
+    await this.save();await this.run();
+  },
+  async verify(pass){const k=await Crypt.derive(pass,unb64(this.cfg.salt));return b64(await crypto.subtle.exportKey('raw',k))===this.cfg.key;},
+  async pairLink(pass){const salt=crypto.getRandomValues(new Uint8Array(16));const k=await Crypt.derive(pass,salt);
+    const ct=await Crypt.seal(k,TE.encode(JSON.stringify({o:this.cfg.owner,r:this.cfg.repo,t:this.cfg.token})));
+    return location.href.split('#')[0]+'#pair='+b64u(cat(salt,ct));},
+  async readPair(code,pass){const raw=unb64u(code);const k=await Crypt.derive(pass,raw.slice(0,16));
+    let p;try{p=JSON.parse(TD.decode(await Crypt.open(k,raw.slice(16))));}catch(e){throw new Error('Wrong passphrase for this pairing code.');}
+    return p;},
+  disconnect(){lsSet('wm-sync','');this.cfg=null;this.key=null;this.st=freshSyncState();this.status='off';this.err=null;clearTimeout(this.timer);return S.kv.del('_sync').catch(()=>{});}
+};
+async function applyRemote(k,v){
+  if(k==='meta'){if(!v)return;S.meta=normMeta(v);applyTheme();}
+  else if(k.startsWith('week_')){const ws=k.slice(5);if(v)S.weeks[ws]=normWeek(v);else delete S.weeks[ws];}
+  else return;
+  try{if(v)await S.kv.put(k,v);else await S.kv.del(k);}catch(e){}
+  S.needRender=true;
+}
+function softRender(){const a=document.activeElement;if(a&&/INPUT|TEXTAREA|SELECT/.test(a.tagName)&&$('#main')&&$('#main').contains(a))return;if($('#dlg').open||$('#ask').open)return;S.needRender=false;render();}
+function agoText(t){if(!t)return 'not yet';const s=Math.round((Date.now()-t)/1000);if(s<45)return 'just now';const m=Math.round(s/60);if(m<60)return m+' min ago';const h=Math.round(m/60);if(h<24)return h+' h ago';return fmtDY(ds(new Date(t)));}
+function paintSyncInfo(){const el=$('#sync-info');if(el)el.innerHTML=syncInfoHtml();}
+function syncInfoHtml(){if(!Sync.on())return '';
+  const p=Sync.st.pending.length;
+  return `<p>Syncing with private repo <b>${esc(Sync.cfg.owner+'/'+Sync.cfg.repo)}</b>. Last synced ${esc(agoText(Sync.st.last))}${p?` · ${p} change${p===1?'':'s'} waiting`:''}.</p>${Sync.err?`<div class="banner err"><p>${esc(Sync.err)}</p></div>`:''}`;}
+
+
+function markMeta(){S.dirty.add('meta');schedule();}
+function markWeek(ws){S.dirty.add(wkey(ws));schedule();}
+function schedule(){clearTimeout(S.timer);setSave('saving');S.timer=setTimeout(flush,350);}
+async function flush(){
+  const keys=[...S.dirty];S.dirty.clear();if(!keys.length){setSave('ok');return;}
+  try{
+    await Promise.all(keys.map(k=>{let v;if(k==='meta')v=S.meta;else{const ws=k.slice(5);v=S.weeks[ws];}return v?S.kv.put(k,v):S.kv.del(k);}));
+    setSave('ok');Sync.mark(keys);
+  }catch(e){keys.forEach(k=>S.dirty.add(k));saveFail(e);}
+}
+function saveFail(e){S.saveErr=(e&&e.message)||String(e);setSave('error');render();}
+function setSave(s){if(s==='ok')S.saveErr=null;S.saveState=s;paintSave();}
+function paintSave(){const el=$('#savestate');if(!el)return;let s=S.saveState,t;
+  if(s==='error'){t='Save failed';}
+  else if(s==='saving'){t='Saving…';}
+  else if(S.kv&&S.kv.kind==='mem'){s='error';t='Not saved (storage blocked)';}
+  else if(Sync.on()){const st=Sync.status,p=Sync.st.pending.length;
+    if(st==='busy'){s='saving';t='Syncing…';}else if(st==='offline'){s='offline';t='Offline · will sync';}else if(st==='error'){s='error';t='Sync problem · see Settings';}
+    else if(p){s='saving';t='Waiting to sync';}else{s='ok';t='Synced';}}
+  else t='Saved on this device';
+  el.dataset.s=s;el.querySelector('span').textContent=t;el.title=t;
+  const w=$('#who');if(w)w.textContent=Sync.on()?'Private sync on':(S.kv&&S.kv.kind==='mem'?'Storage blocked: data will not persist':'This device only');}
+
+/* ---------- task logic ---------- */
+const isDaily=t=>!!(TYPES[t]&&TYPES[t].daily);
+const isNum=t=>!!(TYPES[t]&&TYPES[t].num);
+function cmp(v,op,t,tol){switch(op){case '>':return v>t;case '>=':return v>=t-1e-9;case '<':return v<t;case '<=':return v<=t+1e-9;case '=':return Math.abs(v-t)<=(tol||0)+1e-9;}return false;}
+function numFrac(v,c){const t=+c.target;const pass=cmp(v,c.op,t,+c.tolerance||0);if(c.scoring!=='prop')return pass?1:0;if(pass)return 1;if(!(t>0))return 0;let f;
+  if(c.op==='>='||c.op==='>')f=v/t;else if(c.op==='<='||c.op==='<')f=1-(v-t)/t;else f=1-Math.abs(v-t)/t;return Math.max(0,Math.min(0.99,f));}
+const hasV=r=>r&&r.v!==undefined&&r.v!==null&&r.v!=='';
+function evalInstance(w,inst,o){
+  const c=inst.cfg,days=weekDays(w.start),rec=w.records[inst.id]||{},T=o.today,end=days[6];
+  const res={cells:[],frac:null,eligible:false,unitsDone:0,unitsPlanned:0,status:'',total:null,progress:0};
+  if(isDaily(c.type)){
+    let sum=0,n=0;
+    days.forEach(d=>{
+      if(!(c.days||[]).includes(dow(d))){res.cells.push({d,st:'na'});return;}
+      res.unitsPlanned++;
+      const r=rec[d],has=hasV(r);let st;
+      let f=has?(c.type==='check'?(r.v?1:0):numFrac(+r.v,c)):null;
+      if(o.final){if(f==null)f=0;}
+      else if(d>T){st='future';f=null;}
+      else if(d===T){if(f==null||f<1){st='today';f=null;}} // today counts once it is met
+      else if(f==null)f=0;
+      if(f!=null){sum+=f;n++;if(f>=1)res.unitsDone++;}
+      if(!st)st=f>=1?'done':f>0?'partial':'missed';
+      res.cells.push({d,st,f,v:has?r.v:''});
+    });
+    if(n){res.frac=sum/n;res.eligible=true;}
+    res.progress=res.unitsPlanned?res.unitsDone/res.unitsPlanned:0;
+    res.status=res.eligible?(res.frac>=1?'done':res.frac>0?'partial':'missed'):'pending';
+  }else{
+    let total=0,done=false;
+    days.forEach(d=>{const r=rec[d];if(hasV(r)){if(c.type==='once'){if(r.v)done=true;}else total+=(+r.v||0);}res.cells.push({d,st:'entry',v:hasV(r)?r.v:''});});
+    res.unitsPlanned=1;res.total=total;
+    const f=c.type==='once'?(done?1:0):numFrac(total,c);
+    const ended=T>end, evaluate=o.final||ended||w.liveWeekly;
+    if(c.type==='once')res.progress=done?1:0;
+    else if(c.op==='<='||c.op==='<')res.progress=c.target>0?Math.min(total/c.target,1):0;
+    else res.progress=c.target>0?Math.min(total/c.target,1):(f?1:0);
+    const lockedIn=f>=1&&(c.type==='once'||c.op==='>='||c.op==='>');
+    if(evaluate){res.frac=f;res.eligible=true;res.status=f>=1?'done':f>0?'partial':'missed';}
+    else res.status=lockedIn?'done':'pending';
+    if(f>=1&&(evaluate||lockedIn))res.unitsDone=1;
+  }
+  return res;
+}
+function scoreWeek(w,final){
+  const o={final,today:today()};
+  const insts=w.instances.filter(i=>i.status!=='archived');
+  let earned=0,elig=0,done=0,planned=0;const per=[];const daily=[0,1,2,3,4,5,6].map(()=>({e:0,w:0}));
+  insts.forEach(inst=>{const r=evalInstance(w,inst,o);const wt=+inst.cfg.weight||1;per.push({inst,r});done+=r.unitsDone;planned+=r.unitsPlanned;
+    if(r.eligible){earned+=wt*r.frac;elig+=wt;}
+    if(isDaily(inst.cfg.type))r.cells.forEach((c,i)=>{if(c.f!=null){daily[i].e+=wt*c.f;daily[i].w+=wt;}});});
+  return {score:elig?earned/elig*100:null,earned,elig,done,planned,per,daily:daily.map(x=>x.w?x.e/x.w*100:null),active:insts.length};
+}
+function tiersOf(rc){const t=(rc&&rc.tiers)||[];return rc&&rc.mode==='single'?t.slice(0,1):t.slice();}
+function tierFor(score,rc){if(score==null)return null;const t=tiersOf(rc).sort((a,b)=>b.min-a.min);return t.find(x=>score>=x.min-1e-9)||null;}
+function nextTier(score,rc){const t=tiersOf(rc).sort((a,b)=>a.min-b.min);return t.find(x=>score==null||x.min>score+1e-9)||null;}
+
+function applies(def,ws){if(def.status!=='active')return false;const r=def.rec;if(ws<r.start)return false;
+  if(r.kind==='once')return ws===r.start;if(r.kind==='forever')return true;if(r.kind==='count')return ws<addDays(r.start,7*(+r.weeks||1));if(r.kind==='until')return !!r.end&&ws<=r.end;return false;}
+function recText(r){if(!r)return 'This week only';switch(r.kind){case 'once':return 'This week only';case 'forever':return 'Every week';case 'count':return `${r.weeks} week${r.weeks==1?'':'s'} from ${fmtD(r.start)}`;case 'until':return `Weekly until ${fmtDY(r.end)}`;}return '';}
+function recPos(def,ws){const r=def.rec;if(r.kind!=='count')return '';const i=Math.round((pd(ws)-pd(r.start))/6048e5)+1;return `week ${i} of ${r.weeks}`;}
+function cfgText(c){
+  const parts=[];
+  if(isNum(c.type)){const u=c.type==='occ'?(c.target==1?'time':'times'):c.unit;parts.push(`<span class="op">${OPS[c.op]} ${fmtNum(c.target)}${u?' '+esc(u):''}</span>${c.op==='='&&c.tolerance?` ±${fmtNum(c.tolerance)}`:''}`);}
+  if(isDaily(c.type)){const d=c.days||[];parts.push(d.length===7?'every day':orderDays(d).map(x=>WD[x]).join(' '));}
+  else parts.push(c.type==='once'?'once a week':c.type==='occ'?'per week':'weekly total');
+  if(isNum(c.type))parts.push(c.scoring==='prop'?'partial credit':'pass/fail');
+  if((+c.weight||1)!==1)parts.push(`weight ×${fmtNum(c.weight)}`);
+  if(c.category)parts.push(esc(c.category));
+  return parts.join(' · ');
+}
+function orderDays(d){const s=S.meta.settings.weekStart;return d.slice().sort((a,b)=>((a-s+7)%7)-((b-s+7)%7));}
+const hasRecords=(w,id)=>!!(w.records[id]&&Object.keys(w.records[id]).length);
+function newWeek(ws){const w=normWeek({start:ws,created:Date.now(),instances:[],records:{},skip:{},status:'active',liveWeekly:false,reflection:''});S.weeks[ws]=w;markWeek(ws);return w;}
+function addInst(w,cfg,defId){const i={id:uid(),defId:defId||null,cfg:clone(cfg),status:'active'};w.instances.push(i);return i;}
+function addDefToWeek(w,def){if(w.instances.some(i=>i.defId===def.id)||w.skip[def.id])return null;return addInst(w,def.cfg,def.id);}
+function defById(id){return S.meta.defs.find(d=>d.id===id);}
+function syncDef(def,from,o){o=o||{};
+  Object.keys(S.weeks).sort().forEach(ws=>{if(ws<from)return;const w=S.weeks[ws];if(w.status==='final')return;
+    const inst=w.instances.find(i=>i.defId===def.id);
+    if(applies(def,ws)){if(!inst)addDefToWeek(w,def);else if(o.updateCfg){inst.cfg=clone(def.cfg);inst.custom=false;}}
+    else if(inst&&!hasRecords(w,inst.id)){w.instances=w.instances.filter(i=>i!==inst);}
+    markWeek(ws);});
+}
+function planWeek(ws,mode,opt){
+  const w=newWeek(ws);
+  const names=new Set();
+  const addRec=()=>S.meta.defs.forEach(d=>{if(applies(d,ws)){const i=addDefToWeek(w,d);if(i)names.add(d.cfg.name.toLowerCase().trim());}});
+  if(mode==='recurring')addRec();
+  if(mode==='copy'){const src=S.weeks[opt.src];if(opt.withRec)addRec();
+    (src?src.instances:[]).filter(i=>opt.ids.includes(i.id)).forEach(i=>{const def=i.defId&&defById(i.defId);
+      if(def&&applies(def,ws)){const n=addDefToWeek(w,def);if(n)names.add(def.cfg.name.toLowerCase().trim());return;}
+      const k=i.cfg.name.toLowerCase().trim();if(names.has(k))return;names.add(k);addInst(w,i.cfg,null);});}
+  if(mode==='template'){const t=S.meta.templates.find(x=>x.id===opt.tpl);if(opt.withRec)addRec();
+    (t?t.tasks:[]).forEach(c=>{const k=c.name.toLowerCase().trim();if(names.has(k))return;names.add(k);addInst(w,c,null);});}
+  markWeek(ws);return w;
+}
+function finalizeWeek(ws){const w=S.weeks[ws];const r=scoreWeek(w,true);const rc=clone(S.meta.rewards);
+  w.status='final';w.claimed=false;
+  w.final={score:r.score,tier:tierFor(r.score,rc),rewards:rc,at:Date.now(),done:r.done,planned:r.planned,daily:r.daily,
+    tasks:r.per.map(p=>({id:p.inst.id,defId:p.inst.defId,name:p.inst.cfg.name,category:p.inst.cfg.category||'',frac:p.r.frac,weight:+p.inst.cfg.weight||1})),changes:[]};
+  markWeek(ws);return w;}
+function recalcFinal(ws){const w=S.weeks[ws];if(!w||w.status!=='final')return;const r=scoreWeek(w,true);const f=w.final;const nt=tierFor(r.score,f.rewards);
+  const changed=Math.abs((r.score||0)-(f.score||0))>0.005||((nt&&nt.name)||'')!==((f.tier&&f.tier.name)||'');
+  f.tasks=r.per.map(p=>({id:p.inst.id,defId:p.inst.defId,name:p.inst.cfg.name,category:p.inst.cfg.category||'',frac:p.r.frac,weight:+p.inst.cfg.weight||1}));f.daily=r.daily;f.done=r.done;f.planned=r.planned;
+  if(changed){f.changes.push({at:Date.now(),from:f.score,to:r.score,fromTier:f.tier?f.tier.name:null,toTier:nt?nt.name:null});
+    const tierMsg=((f.tier&&f.tier.name)||'')!==((nt&&nt.name)||'')?` Reward: ${f.tier?f.tier.name:'none'} → ${nt?nt.name:'none'}.`:'';
+    toast(`Finalized week recalculated: ${fmtPct(f.score)}% → ${fmtPct(r.score)}%.${tierMsg}`);f.score=r.score;f.tier=nt;}
+  markWeek(ws);}
+
+/* ---------- undo ---------- */
+function snap(label){S.undo={label,meta:JSON.stringify(S.meta),weeks:JSON.stringify(S.weeks)};}
+function doUndo(){if(!S.undo)return;const u=S.undo;S.undo=null;const old=Object.keys(S.weeks);S.meta=JSON.parse(u.meta);S.weeks=JSON.parse(u.weeks);
+  old.forEach(k=>S.dirty.add(wkey(k)));Object.keys(S.weeks).forEach(k=>S.dirty.add(wkey(k)));S.dirty.add('meta');schedule();toast('Undone');render();}
+
+/* ---------- toast / dialogs ---------- */
+let toastT=null;
+function toast(msg,o){o=o||{};const t=$('#toast');t.className='toast'+(o.err?' err':'');t.innerHTML=`<span>${esc(msg)}</span>${o.undo?'<button type="button" data-act="undo">Undo</button>':''}`;t.hidden=false;clearTimeout(toastT);toastT=setTimeout(()=>{t.hidden=true;},o.undo?7000:3800);}
+function ask(o){return new Promise(res=>{const d=$('#ask');
+  d.innerHTML=`<form method="dialog"><header class="dlg-h"><h2>${esc(o.title)}</h2></header><div class="dlg-b"><p>${o.body||''}</p>${o.input?`<label class="f">${esc(o.input)}<input type="text" id="ask-in" autocomplete="off"></label><p class="err" id="ask-err"></p>`:''}</div><footer class="dlg-f"><button type="button" class="btn ghost" value="no" id="ask-no">Cancel</button><button type="button" class="btn ${o.danger?'danger':'primary'}" id="ask-ok">${esc(o.ok||'Confirm')}</button></footer></form>`;
+  const close=v=>{d.close();res(v);};
+  $('#ask-no',d).onclick=()=>close(false);
+  $('#ask-ok',d).onclick=()=>{if(o.input){const v=$('#ask-in',d).value.trim();if(o.match&&v!==o.match){$('#ask-err',d).textContent=`Type ${o.match} to confirm.`;return;}close(v||true);}else close(true);};
+  d.onclose=()=>res(false);d.showModal();if(o.input)$('#ask-in',d).focus();});}
+function openDlg(html){const d=$('#dlg');d.innerHTML=html;d.showModal();const f=d.querySelector('input[type=text],input[type=password],select,textarea');if(f)f.focus();}
+function closeDlg(){const d=$('#dlg');if(d.open)d.close();S.editor=null;}
+
+/* ---------- rendering ---------- */
+function shell(){
+  $('#root').innerHTML=`<div class="app"><aside class="rail" aria-label="Sections">
+    <div class="brand"><div class="brand-mark" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i class="on"></i><i class="on"></i><i></i><i></i></div><b>Weekmark</b></div>
+    <nav class="nav" id="nav">${VIEWS.map(([k,l],i)=>`<a href="#${k}" data-view="${k}"><span class="k">${i+1}</span>${l}</a>`).join('')}</nav>
+    <div class="rail-foot"><div class="savestate" id="savestate" data-s="ok"><span>Saved</span></div><div class="who" id="who"></div></div>
+  </aside><main id="main" tabindex="-1"></main></div>`;
+  paintSave();
+}
+function render(){
+  const main=$('#main');if(!main)return;
+  const ae=document.activeElement,fid=ae&&ae.id&&main.contains(ae)?ae.id:null;
+  $$('#nav a').forEach(a=>a.setAttribute('aria-current',a.dataset.view===S.view?'page':'false'));
+  const fn={dashboard:vDashboard,planner:vPlanner,recurring:vRecurring,templates:vTemplates,history:vHistory,rewards:vRewards,settings:vSettings}[S.view]||vDashboard;
+  main.innerHTML=`<div class="wrap">${S.saveErr?`<div class="banner err" role="alert"><p><b>Your last change was not saved.</b> ${esc(S.saveErr)}. Export a backup from Settings, then free up browser storage or try again.</p><button class="btn sm" data-act="retrysave">Try again</button></div>`:''}${fn()}</div>`;
+  if(fid){const el=document.getElementById(fid);if(el)el.focus({preventScroll:true});}
+}
+function weekHeader(ws,actions){
+  const w=S.weeks[ws],end=addDays(ws,6),T=today(),cur=weekStartOf(T);
+  let st,cl;if(!w){st='Not planned';cl='';}else if(w.status==='final'){st='Finalized';cl='final';}else if(T>end){st='Ended · not finalized';cl='ended';}else if(T<ws){st='Upcoming';cl='';}else{st='In progress';cl='live';}
+  return `<header class="wk"><div><div class="eyebrow">Week ${isoWeek(ws)} · ${WDL[S.meta.settings.weekStart]} start</div><h1>${fmtRange(ws)}</h1></div>
+  <div class="wk-nav"><span class="pill ${cl}">${st}</span><button class="icon" data-act="wk" data-n="-7" aria-label="Previous week">‹</button><button class="btn sm" data-act="wk" data-n="0" ${ws===cur?'disabled':''}>This week</button><button class="icon" data-act="wk" data-n="7" aria-label="Next week">›</button>${actions||''}</div></header>`;
+}
+function exampleBanner(){return S.meta.settings.example?`<div class="banner warn"><p><b>You are looking at example data.</b> The tasks, entries and past weeks here show how Weekmark works. Clear them when you are ready to track your own week.</p><button class="btn sm" data-act="clearexample">Clear examples and start fresh</button></div>`:'';}
+
+function vDashboard(){
+  const ws=S.ws,w=S.weeks[ws];
+  let h=weekHeader(ws)+exampleBanner();
+  if(!w)return h+rolloverCard(ws);
+  const T=today(),end=addDays(ws,6),final=w.status==='final';
+  const r=scoreWeek(w,final);
+  const score=final?w.final.score:r.score,rc=final?w.final.rewards:S.meta.rewards;
+  if(!final&&T>end&&w.instances.length)h+=`<div class="banner warn"><p><b>This week ended on ${fmtD(end)}.</b> Add any last entries, then finalize to save the score and reward.</p><button class="btn sm primary" data-act="finalize">Finalize week</button></div>`;
+  if(final&&w.final.changes&&w.final.changes.length){const c=w.final.changes[w.final.changes.length-1];h+=`<div class="banner"><p>Recalculated after a correction on ${fmtDY(ds(new Date(c.at)))}: ${fmtPct(c.from)}% → ${fmtPct(c.to)}%${c.fromTier!==c.toTier?`, reward ${esc(c.fromTier||'none')} → ${esc(c.toTier||'none')}`:''}.</p></div>`;}
+  h+=missingRecurring(ws,w);
+  h+=summary(w,r,score,rc,final);
+  h+=ledger(w,r,final);
+  h+=`<section class="panel pad" style="display:flex;flex-direction:column;gap:12px">
+    <div class="sec-h"><h2>Week notes</h2>${final?'':`<label class="chk" style="margin-left:auto"><input type="checkbox" id="liveweekly" data-chg="liveweekly" ${w.liveWeekly?'checked':''}> Count weekly tasks in the live score now</label>`}</div>
+    <label class="f"><span class="sr">Reflection for this week</span><textarea id="reflection" data-chg="reflection" placeholder="What went well, what got in the way, what to change next week">${esc(w.reflection)}</textarea></label>
+    ${final?'':`<p class="note">Weekly totals, times-per-week and once-a-week tasks stay pending until the week ends, unless you tick the box above.</p>`}
+  </section>`;
+  return h;
+}
+function missingRecurring(ws,w){if(w.status==='final')return '';const miss=S.meta.defs.filter(d=>applies(d,ws)&&!w.instances.some(i=>i.defId===d.id)&&!w.skip[d.id]);
+  if(!miss.length)return '';return `<div class="banner"><p>${miss.length} recurring task${miss.length>1?'s are':' is'} scheduled for this week but not in it: ${miss.map(d=>esc(d.cfg.name)).join(', ')}.</p><button class="btn sm" data-act="addmissing">Add to this week</button></div>`;}
+function summary(w,r,score,rc,final){
+  const tiers=tiersOf(rc).sort((a,b)=>a.min-b.min),cur=tierFor(score,rc),nxt=nextTier(score,rc);
+  let rew;
+  if(final){rew=cur?`<b class="good" style="color:var(--good)">${esc(cur.name)}</b> earned`:'No reward this week';}
+  else if(score==null)rew='Starts once a task is due';
+  else rew=cur?`Eligible: <b>${esc(cur.name)}</b>`:'Not eligible yet';
+  let toNext='';
+  if(score!=null&&nxt)toNext=`<span class="num">${fmtPct(nxt.min-score)}</span> points to ${esc(nxt.name)} (${fmtNum(nxt.min)}%)`;
+  else if(score!=null&&cur)toNext='Top reward reached';
+  const claim=final&&cur?`<label class="chk"><input type="checkbox" id="claimed" data-chg="claimed" ${w.claimed?'checked':''}> Reward claimed</label>`:'';
+  return `<section class="panel summary" aria-label="Week summary">
+    <div class="score"><div class="eyebrow">${final?'Final score':'Live score'}</div>
+      <div class="big" aria-label="${score==null?'No score yet':fmtPct(score)+' percent'}">${score==null?'—':fmtPct(score)}<small>%</small></div>
+      <p class="note">${final?`Finalized ${fmtDY(ds(new Date(w.final.at)))}`:'Days not yet due are left out of the score'}</p>
+      ${final?'':`<button class="btn sm" data-act="explain" style="align-self:flex-start;margin-top:6px">How is this calculated?</button>`}
+    </div>
+    <div class="sum-r">
+      <div><div class="meter" role="img" aria-label="Score ${fmtPct(score)} percent with reward thresholds"><div class="fill" style="width:${Math.max(0,Math.min(100,score||0))}%"></div>${tiers.map(t=>`<span class="tick" style="left:calc(${t.min}% - 1px)" title="${esc(t.name)} at ${t.min}%"></span>`).join('')}</div>
+      <div class="tiers-legend" style="margin-top:10px">${tiers.map(t=>`<span class="${cur&&cur.min<=t.min&&score>=t.min?'got':''}">${esc(t.name)} <b>${fmtNum(t.min)}%</b></span>`).join('')}</div></div>
+      <dl class="facts">
+        <div><dt>Units done</dt><dd class="num">${r.done} / ${r.planned}</dd></div>
+        <div><dt>Active tasks</dt><dd class="num">${r.active}</dd></div>
+        <div><dt>Reward</dt><dd>${rew}</dd></div>
+      </dl>
+      <div class="row note" style="justify-content:space-between">${toNext?`<span>${toNext}</span>`:'<span></span>'}${claim}</div>
+    </div></section>`;
+}
+function ledger(w,r,final){
+  const days=weekDays(w.start),T=today();
+  if(!w.instances.length)return `<section class="panel"><div class="empty"><p>No tasks in this week yet.</p><div class="row"><button class="btn primary" data-act="newtask">Add a task</button><button class="btn" data-act="go" data-v="planner">Open planner</button></div></div></section>`;
+  const head=`<div class="lg-head" role="row"><div class="lg-name eyebrow">Task</div>${days.map(d=>`<div class="lg-day ${d===T?'today':''}">${WD[dow(d)]}<br><b>${pd(d).getDate()}</b></div>`).join('')}<div class="lg-res-h">Result</div></div>`;
+  const rows=r.per.map(({inst,r:x})=>rowHTML(w,inst,x)).join('')+w.instances.filter(i=>i.status==='archived').map(i=>`<div class="lg-row archived"><div class="tname"><b>${esc(i.cfg.name)}</b><span class="tmeta">Archived for this week · not scored</span></div></div>`).join('');
+  const strip=`<div class="dstrip" aria-label="Daily achievement"><div class="lbl">Daily achievement<br><span class="faint">daily tasks only</span></div>${r.daily.map((v,i)=>`<div class="dbar" title="${WDL[dow(days[i])]}: ${v==null?'not scored':fmtPct(v)+'%'}"><div class="b"><i style="height:${v==null?0:v}%"></i></div><span>${v==null?'—':Math.round(v)+'%'}</span></div>`).join('')}<div class="sp"></div></div>`;
+  return `<section class="panel ledger" aria-label="This week's tasks"><div class="sec-h" style="padding:14px 14px 4px"><h2>Tracking</h2><span class="note">${final?'Finalized weeks can still be corrected; the score is recalculated and the change is logged.':'Changes save automatically.'}</span><span class="spacer"></span><button class="btn sm" data-act="newtask">Add task</button></div>${head}${rows}${strip}
+  <div class="lg-foot"><span class="k"><i style="background:var(--good)">✓</i>Completed</span><span class="k"><i style="background:var(--warn)">½</i>Partial</span><span class="k"><i style="background:var(--bad)">×</i>Not completed</span><span class="k"><i style="background:transparent;border:1px dashed var(--accent)"></i>Due today / not yet due</span><span class="k"><i style="background:var(--panel-2)"></i>Not scheduled</span></div></section>`;
+}
+function rowHTML(w,inst,x){
+  const c=inst.cfg,def=inst.defId&&defById(inst.defId);
+  const recTag=def?`<span class="tag acc">↻ ${def.rec.kind==='count'?recPos(def,w.start):recText(def.rec).toLowerCase()}</span>`:'';
+  const cells=x.cells.map(cell=>cellHTML(inst,c,cell)).join('');
+  let resMain,resSub;
+  if(isDaily(c.type)){resMain=x.frac==null?'—':Math.round(x.frac*100)+'%';resSub=`${x.unitsDone}/${x.unitsPlanned} days`;}
+  else if(c.type==='once'){resMain=x.progress>=1?'Done':(x.status==='pending'?'Open':'Missed');resSub=x.status==='pending'?'pending':'';}
+  else{const u=c.type==='occ'?'×':(c.unit||'');resMain=`${fmtNum(x.total)}<span style="color:var(--muted)">/${fmtNum(c.target)}</span>`;resSub=x.status==='pending'?`${u} · pending`:`${u} · ${x.frac==null?'':Math.round(x.frac*100)+'%'}`;}
+  const prog=!isDaily(c.type)&&c.type!=='once'?`<div class="prog" aria-hidden="true"><i style="width:${Math.round(x.progress*100)}%;${(c.op==='<='||c.op==='<')&&x.progress>=1?'background:var(--warn)':''}"></i></div>`:'';
+  return `<div class="lg-row"><div class="tname"><b>${esc(c.name)}</b><span class="tmeta">${cfgText(c)} ${recTag}</span>${prog}</div>${cells}<div class="res ${x.status}"><b>${resMain}</b><span>${resSub}</span></div></div>`;
+}
+function cellHTML(inst,c,cell){
+  const id=`c-${inst.id}-${cell.d}`,dl=`${WDL[dow(cell.d)]} ${fmtD(cell.d)}`;
+  const stWord={done:'completed',partial:'partly completed',missed:'not completed',today:'due today',future:'not yet due',entry:''}[cell.st]||'';
+  if(cell.st==='na')return `<div class="cellw"><span class="cell na" aria-label="${esc(c.name)}, ${dl}: not scheduled">–</span></div>`;
+  if(c.type==='check'||c.type==='once'){const on=!!cell.v;
+    return `<div class="cellw" data-st="${cell.st==='entry'?(on?'done':''):cell.st}"><button type="button" class="cell" id="${id}" data-act="tog" data-i="${inst.id}" data-d="${cell.d}" aria-pressed="${on}" aria-label="${esc(c.name)}, ${dl}${stWord?': '+stWord:''}">${on?'✓':''}</button></div>`;}
+  const step=c.type==='occ'?'1':'any';
+  return `<div class="cellw" data-st="${cell.st==='entry'?'':cell.st}"><input class="cell" id="${id}" type="number" inputmode="decimal" min="0" step="${step}" value="${esc(cell.v)}" data-num="1" data-i="${inst.id}" data-d="${cell.d}" aria-label="${esc(c.name)} in ${esc(c.type==='occ'?'times':c.unit||'units')}, ${dl}${stWord?': '+stWord:''}" placeholder="${cell.st==='future'?'':'·'}"></div>`;
+}
+function rolloverCard(ws){
+  const recs=S.meta.defs.filter(d=>applies(d,ws));
+  const others=Object.keys(S.weeks).filter(k=>k!==ws).sort().reverse();
+  const src=S.ui.copySrc&&S.weeks[S.ui.copySrc]?S.ui.copySrc:(others.find(k=>k<ws)||others[0]);
+  const srcW=src&&S.weeks[src];
+  const tpls=S.meta.templates;
+  return `<section class="panel pad" style="display:flex;flex-direction:column;gap:14px"><div class="sec-h"><h2>Plan this week</h2><span class="note">Pick how to start. Entries always start empty; nothing is carried over from other weeks.</span></div>
+  <div class="plan-grid">
+    <div class="plan-opt"><h3>Carry forward recurring tasks</h3><div class="list">${recs.length?recs.map(d=>`<span>${esc(d.cfg.name)} <span class="faint">· ${esc(recText(d.rec))}</span></span>`).join(''):'<span>No recurring tasks apply to this week.</span>'}</div><button class="btn primary go" data-act="plan" data-mode="recurring">Create with ${recs.length} recurring task${recs.length===1?'':'s'}</button></div>
+    <div class="plan-opt"><h3>Copy a previous week</h3>${srcW?`<label class="f">Copy from<select id="copy-src" data-chg="copysrc">${others.map(k=>`<option value="${k}" ${k===src?'selected':''}>${esc(wkLabel(k))}</option>`).join('')}</select></label>
+      <div class="list">${srcW.instances.filter(i=>i.status!=='archived').map(i=>`<label class="chk"><input type="checkbox" name="copy-task" value="${i.id}" checked> ${esc(i.cfg.name)}</label>`).join('')||'<span>That week has no tasks.</span>'}</div>
+      <label class="chk"><input type="checkbox" id="copy-rec" checked> Also add recurring tasks</label><button class="btn go" data-act="plan" data-mode="copy">Copy selected tasks</button>`:'<p class="note">No other weeks yet.</p>'}</div>
+    <div class="plan-opt"><h3>Start from a template</h3>${tpls.length?`<label class="f">Template<select id="tpl-src">${tpls.map(t=>`<option value="${t.id}">${esc(t.name)} (${t.tasks.length})</option>`).join('')}</select></label><label class="chk"><input type="checkbox" id="tpl-rec" checked> Also add recurring tasks</label><button class="btn go" data-act="plan" data-mode="template">Use template</button>`:'<p class="note">No templates yet. Save one from the weekly planner.</p>'}</div>
+    <div class="plan-opt"><h3>Start from scratch</h3><p class="note">An empty week. Recurring tasks and past weeks stay as they are, and you can add recurring tasks later.</p><button class="btn go" data-act="plan" data-mode="blank">Create empty week</button></div>
+  </div></section>`;
+}
+
+function vPlanner(){
+  const ws=S.ws,w=S.weeks[ws];
+  let h=weekHeader(ws);
+  if(!w)return h+rolloverCard(ws);
+  const final=w.status==='final';
+  const list=w.instances;
+  h+=missingRecurring(ws,w);
+  h+=`<section class="panel"><div class="sec-h pad" style="padding-bottom:10px"><h2>Tasks in this week</h2><span class="note">${list.filter(i=>i.status!=='archived').length} active</span><span class="spacer"></span>
+    <div class="row"><button class="btn primary sm" data-act="newtask">Add task</button><button class="btn sm" data-act="savetpl" ${list.length?'':'disabled'}>Save as template</button>${S.meta.templates.length&&!final?'<button class="btn sm" data-act="applytpl">Add from template</button>':''}</div></div>
+    <div class="list-rows">${list.length?list.map((i,ix)=>{const def=i.defId&&defById(i.defId);return `<div class="lrow" ${i.status==='archived'?'style="opacity:.55"':''}>
+      <div class="row" style="gap:4px"><button class="icon" data-act="move" data-i="${i.id}" data-n="-1" aria-label="Move ${esc(i.cfg.name)} up" ${ix===0?'disabled':''}>↑</button><button class="icon" data-act="move" data-i="${i.id}" data-n="1" aria-label="Move ${esc(i.cfg.name)} down" ${ix===list.length-1?'disabled':''}>↓</button></div>
+      <div class="tname"><b>${esc(i.cfg.name)}</b><span class="tmeta">${cfgText(i.cfg)}</span>${i.cfg.notes?`<span class="note">${esc(i.cfg.notes)}</span>`:''}</div>
+      <div class="row">${def?`<span class="tag acc">↻ ${esc(recText(def.rec))}</span>`:'<span class="tag">This week only</span>'}${i.custom?'<span class="tag warn">Edited for this week</span>':''}${i.status==='archived'?'<span class="tag">Archived</span>':''}</div>
+      <div class="acts"><button class="btn sm" data-act="edit" data-i="${i.id}">Edit</button><button class="btn sm ghost" data-act="dup" data-i="${i.id}">Duplicate</button><button class="btn sm ghost" data-act="arch" data-i="${i.id}">${i.status==='archived'?'Restore':'Archive'}</button><button class="btn sm danger" data-act="delinst" data-i="${i.id}">Delete</button></div></div>`;}).join(''):'<div class="empty"><p>This week has no tasks.</p><button class="btn primary" data-act="newtask">Add a task</button></div>'}</div></section>`;
+  h+=`<section class="panel pad" style="display:flex;flex-direction:column;gap:12px"><h2 style="font-size:17px">Week actions</h2>
+    <div class="row">${final?`<span class="note">Finalized ${fmtDY(ds(new Date(w.final.at)))} with ${fmtPct(w.final.score)}%.</span>`:`<button class="btn" data-act="finalize" ${w.instances.length?'':'disabled'}>Finalize week${today()<=addDays(ws,6)?' early':''}</button>`}<button class="btn danger" data-act="delweek">Delete this week's plan</button></div>
+    <p class="note">Finalizing saves the score, the reward and a copy of every task's settings, so later edits to recurring tasks never change this week's result.</p></section>`;
+  return h;
+}
+
+function vRecurring(){
+  const defs=S.meta.defs,act=defs.filter(d=>d.status==='active'),arc=defs.filter(d=>d.status!=='active');
+  const T=today(),cur=weekStartOf(T);
+  const row=d=>{const ended=!applies(d,cur)&&!applies(d,addDays(cur,7))&&d.rec.kind!=='forever'&&(d.rec.kind==='once'||d.rec.kind==='count'?addDays(d.rec.start,7*((d.rec.kind==='once'?1:+d.rec.weeks)))<=cur:d.rec.end<cur);
+    return `<div class="lrow"><div class="tname"><b>${esc(d.cfg.name)}</b><span class="tmeta">${cfgText(d.cfg)}</span><span class="note">${esc(recText(d.rec))} · started ${fmtDY(d.rec.start)}</span></div>
+    <div class="row">${d.status!=='active'?'<span class="tag">Archived</span>':ended?'<span class="tag">Finished</span>':'<span class="tag good">Active</span>'}</div>
+    <div class="acts">${d.status==='active'?`<button class="btn sm" data-act="editdef" data-id="${d.id}">Edit</button><button class="btn sm ghost" data-act="stopdef" data-id="${d.id}">Stop…</button><button class="btn sm ghost" data-act="archdef" data-id="${d.id}">Archive</button>`:`<button class="btn sm" data-act="archdef" data-id="${d.id}">Restore</button>`}<button class="btn sm danger" data-act="deldef" data-id="${d.id}">Delete</button></div></div>`;};
+  return `<header class="wk"><div><div class="eyebrow">Repeating tasks</div><h1>Recurring tasks</h1></div><div class="wk-nav"><button class="btn primary" data-act="newdef">Add recurring task</button></div></header>
+  <p class="note" style="max-width:68ch">Each recurring task creates a separate copy in every week it covers, with empty entries. Edits apply from this week or next week onward; finalized weeks keep the settings they were scored with.</p>
+  <section class="panel"><div class="list-rows">${act.length?act.map(row).join(''):'<div class="empty"><p>No recurring tasks yet.</p><button class="btn primary" data-act="newdef">Add recurring task</button></div>'}</div></section>
+  ${arc.length?`<section class="panel"><div class="sec-h pad" style="padding-bottom:6px"><h2>Archived</h2><span class="note">Not added to new weeks. History is kept.</span></div><div class="list-rows">${arc.map(row).join('')}</div></section>`:''}`;
+}
+
+function vTemplates(){
+  const t=S.meta.templates;
+  return `<header class="wk"><div><div class="eyebrow">Reusable task sets</div><h1>Templates</h1></div><div class="wk-nav"><button class="btn primary" data-act="savetpl" ${S.weeks[S.ws]&&S.weeks[S.ws].instances.length?'':'disabled'}>Save ${esc(wkLabel(S.ws))} as template</button></div></header>
+  <p class="note" style="max-width:68ch">A template stores task settings only, never entries. Use one when planning a new week, or add its tasks to a week from the planner.</p>
+  ${t.length?t.map(tp=>`<section class="panel"><div class="sec-h pad" style="padding-bottom:8px"><h2>${esc(tp.name)}</h2><span class="note">${tp.tasks.length} task${tp.tasks.length===1?'':'s'}</span><span class="spacer"></span><div class="row"><button class="btn sm" data-act="tplapply" data-id="${tp.id}">Add to ${esc(wkLabel(S.ws))}</button><button class="btn sm ghost" data-act="tplrename" data-id="${tp.id}">Rename</button><button class="btn sm danger" data-act="tpldel" data-id="${tp.id}">Delete</button></div></div>
+    <div class="list-rows">${tp.tasks.map((c,ix)=>`<div class="lrow"><div class="tname"><b>${esc(c.name)}</b><span class="tmeta">${cfgText(c)}</span></div><button class="btn sm ghost" data-act="tplrm" data-id="${tp.id}" data-n="${ix}">Remove</button></div>`).join('')||'<div class="empty">Empty template.</div>'}</div></section>`).join(''):`<section class="panel"><div class="empty"><p>No templates yet.</p><p class="note">Plan a week, then save it as a template here or from the weekly planner.</p></div></section>`}`;
+}
+
+function vHistory(){
+  const all=Object.values(S.weeks).sort((a,b)=>b.start<a.start?-1:1);
+  const years=[...new Set(all.map(w=>w.start.slice(0,4)))].sort().reverse();
+  const fy=S.ui.histYear,fm=S.ui.histMonth;
+  const fil=all.filter(w=>(fy==='all'||w.start.slice(0,4)===fy)&&(fm==='all'||w.start.slice(5,7)===fm));
+  const fin=fil.filter(w=>w.status==='final'&&w.final&&w.final.score!=null);
+  const T=today();
+  const scores=fin.map(w=>w.final.score);
+  const avg=scores.length?scores.reduce((a,b)=>a+b,0)/scores.length:null;
+  const best=fin.slice().sort((a,b)=>b.final.score-a.final.score)[0],worst=fin.slice().sort((a,b)=>a.final.score-b.final.score)[0];
+  const earned=fin.filter(w=>w.final.tier).length,claimed=fin.filter(w=>w.final.tier&&w.claimed).length;
+  const filters=`<div class="row"><label class="f" style="flex-direction:row;align-items:center;gap:8px">Year<select id="h-year" data-chg="hyear" style="width:auto"><option value="all">All years</option>${years.map(y=>`<option ${y===fy?'selected':''}>${y}</option>`).join('')}</select></label>
+    <label class="f" style="flex-direction:row;align-items:center;gap:8px">Month<select id="h-month" data-chg="hmonth" style="width:auto"><option value="all">All months</option>${MON.map((m,i)=>`<option value="${pad(i+1)}" ${pad(i+1)===fm?'selected':''}>${m}</option>`).join('')}</select></label></div>`;
+  const kpis=`<section class="panel kpis"><div><span>Average weekly score</span><b>${avg==null?'—':fmtPct(avg)+'%'}</b></div><div><span>Best week</span><b>${best?fmtPct(best.final.score)+'%':'—'}</b><span>${best?fmtD(best.start):''}</span></div><div><span>Lowest week</span><b>${worst?fmtPct(worst.final.score)+'%':'—'}</b><span>${worst?fmtD(worst.start):''}</span></div><div><span>Rewards earned</span><b>${earned}</b><span>${claimed} claimed</span></div><div><span>Weeks finalized</span><b>${fin.length}</b><span>of ${fil.length} planned</span></div></section>`;
+  // daily trend by weekday
+  const dayAgg=[0,1,2,3,4,5,6].map(()=>({s:0,n:0}));
+  fin.forEach(w=>(w.final.daily||[]).forEach((v,i)=>{if(v!=null){const d=dow(addDays(w.start,i));dayAgg[d].s+=v;dayAgg[d].n++;}}));
+  const order=[0,1,2,3,4,5,6].map(i=>(S.meta.settings.weekStart+i)%7);
+  // task rates
+  const tmap=new Map();
+  fin.forEach(w=>(w.final.tasks||[]).forEach(t=>{if(t.frac==null)return;const k=t.defId||('n:'+t.name.toLowerCase().trim());const e=tmap.get(k)||{name:t.name,rec:!!t.defId,s:0,n:0,full:0};e.name=t.name;e.s+=t.frac;e.n++;if(t.frac>=1)e.full++;tmap.set(k,e);}));
+  const trows=[...tmap.values()].sort((a,b)=>b.n-a.n||a.name.localeCompare(b.name));
+  const chartWeeks=fin.slice().sort((a,b)=>a.start<b.start?-1:1);
+  return `<header class="wk"><div><div class="eyebrow">Saved results</div><h1>History & reports</h1></div><div class="wk-nav">${filters}</div></header>
+  ${kpis}
+  <div class="charts"><section class="panel pad"><div class="sec-h" style="margin-bottom:10px"><h2>Score over time</h2><span class="note">finalized weeks</span></div>${lineChart(chartWeeks)}</section>
+  <section class="panel pad"><div class="sec-h" style="margin-bottom:10px"><h2>Daily completion</h2><span class="note">average by weekday</span></div>${dayChart(order.map(d=>({d,v:dayAgg[d].n?dayAgg[d].s/dayAgg[d].n:null})))}</section></div>
+  <section class="panel"><div class="sec-h pad" style="padding-bottom:6px"><h2>Task completion rates</h2><span class="note">from saved weekly snapshots</span></div>
+  ${trows.length?`<div class="tbl-wrap"><table class="t"><thead><tr><th>Task</th><th>Type</th><th class="n">Weeks</th><th class="n">Full credit</th><th class="n">Avg. credit</th><th style="width:28%"></th></tr></thead><tbody>${trows.map(e=>`<tr><td>${esc(e.name)}</td><td>${e.rec?'<span class="tag acc">Recurring</span>':'<span class="tag">One-off</span>'}</td><td class="n">${e.n}</td><td class="n">${e.full}</td><td class="n">${Math.round(e.s/e.n*100)}%</td><td><div class="hbar"><i style="width:${e.s/e.n*100}%"></i></div></td></tr>`).join('')}</tbody></table></div>`:'<div class="empty">Finalize a week to see task results here.</div>'}</section>
+  <section class="panel"><div class="sec-h pad" style="padding-bottom:6px"><h2>Weeks</h2><span class="note">${fil.length} shown</span></div><div class="list-rows">${fil.length?fil.map(w=>{const f=w.status==='final'&&w.final;const ended=T>addDays(w.start,6);
+    return `<div class="hrow"><div><b class="num">W${isoWeek(w.start)}</b><div class="note">${fmtD(w.start)} – ${fmtD(addDays(w.start,6))}</div></div>
+    <div class="hbar-c">${f?`<div class="hbar"><i style="width:${Math.max(0,Math.min(100,f.score||0))}%"></i></div>`:`<span class="note">${ended?'Ended, not finalized':'In progress or upcoming'}</span>`}</div>
+    <div class="num" style="text-align:right">${f?fmtPct(f.score)+'%':'—'}</div>
+    <div>${f?(f.tier?`<span class="tag good">${esc(f.tier.name)}</span>${f.tier?` <label class="chk" style="display:inline-flex;font-size:12.5px;margin-left:6px"><input type="checkbox" id="cl-${w.start}" data-chg="claimrow" data-ws="${w.start}" ${w.claimed?'checked':''}>claimed</label>`:''}`:'<span class="tag">No reward</span>')+(f.changes&&f.changes.length?' <span class="tag warn" title="Corrected after finalizing">recalculated</span>':''):''}</div>
+    <div class="row" style="justify-content:flex-end">${!f&&ended&&w.instances.length?`<button class="btn sm" data-act="finalizews" data-ws="${w.start}">Finalize</button>`:''}<button class="btn sm ghost" data-act="openweek" data-ws="${w.start}">Open</button></div></div>`;}).join(''):'<div class="empty">No weeks match these filters.</div>'}</div></section>`;
+}
+function lineChart(ws){
+  if(ws.length<1)return '<div class="empty" style="padding:30px 0">Finalize a week to start the chart.</div>';
+  const W=620,H=220,L=40,R=16,Tp=14,B=30,iw=W-L-R,ih=H-Tp-B;
+  const x=i=>L+(ws.length===1?iw/2:i*iw/(ws.length-1)),y=v=>Tp+ih-(Math.max(0,Math.min(100,v))/100)*ih;
+  const pts=ws.map((w,i)=>[x(i),y(w.final.score)]);
+  const line=pts.map((p,i)=>(i?'L':'M')+p[0].toFixed(1)+' '+p[1].toFixed(1)).join(' ');
+  const area=line+` L${pts[pts.length-1][0].toFixed(1)} ${Tp+ih} L${pts[0][0].toFixed(1)} ${Tp+ih} Z`;
+  const tiers=tiersOf(S.meta.rewards);
+  const every=Math.max(1,Math.ceil(ws.length/7));
+  return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Final weekly score for ${ws.length} weeks">
+   ${[0,25,50,75,100].map(v=>`<line x1="${L}" x2="${W-R}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)" stroke-width="1"/><text x="${L-8}" y="${y(v)+4}" text-anchor="end" font-size="11" fill="var(--faint)" font-family="var(--mono)">${v}</text>`).join('')}
+   ${tiers.map(t=>`<line x1="${L}" x2="${W-R}" y1="${y(t.min)}" y2="${y(t.min)}" stroke="var(--good)" stroke-width="1" stroke-dasharray="4 4" opacity=".6"><title>${esc(t.name)} at ${t.min}%</title></line>`).join('')}
+   <path d="${area}" fill="var(--accent)" opacity=".12"/>
+   <path d="${line}" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round"/>
+   ${pts.map((p,i)=>`<circle cx="${p[0]}" cy="${p[1]}" r="${i===pts.length-1?5:3}" fill="${i===pts.length-1?'var(--accent)':'var(--panel)'}" stroke="var(--accent)" stroke-width="1.5"><title>${fmtD(ws[i].start)}: ${fmtPct(ws[i].final.score)}%</title></circle>`).join('')}
+   ${ws.map((w,i)=>i%every===0||i===ws.length-1?`<text x="${x(i)}" y="${H-8}" text-anchor="middle" font-size="11" fill="var(--muted)" font-family="var(--mono)">${fmtD(w.start)}</text>`:'').join('')}
+   <text x="${pts[pts.length-1][0]-8}" y="${pts[pts.length-1][1]-10}" text-anchor="end" font-size="12" fill="var(--fg)" font-family="var(--mono)">${fmtPct(ws[ws.length-1].final.score)}%</text>
+  </svg>`;
+}
+function dayChart(items){
+  const W=360,H=220,B=30,Tp=18,bw=34,gap=(W-7*bw)/8,ih=H-B-Tp;
+  if(items.every(i=>i.v==null))return '<div class="empty" style="padding:30px 0">No finalized daily tasks yet.</div>';
+  return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Average daily completion by weekday">
+  <line x1="0" x2="${W}" y1="${Tp+ih}" y2="${Tp+ih}" stroke="var(--line-2)"/>
+  ${items.map((it,i)=>{const x=gap+i*(bw+gap),h=it.v==null?0:it.v/100*ih;return `<rect x="${x}" y="${Tp+ih-h}" width="${bw}" height="${h}" rx="4" fill="var(--accent)" opacity=".8"><title>${WDL[it.d]}: ${it.v==null?'no data':Math.round(it.v)+'%'}</title></rect><text x="${x+bw/2}" y="${Tp+ih-h-5}" text-anchor="middle" font-size="11" fill="var(--fg)" font-family="var(--mono)">${it.v==null?'':Math.round(it.v)}</text><text x="${x+bw/2}" y="${H-9}" text-anchor="middle" font-size="11" fill="var(--muted)">${WD[it.d]}</text>`;}).join('')}
+  </svg>`;
+}
+
+function vRewards(){
+  const rc=S.ui.rdraft||(S.ui.rdraft=clone(S.meta.rewards));
+  const tiers=rc.mode==='single'?rc.tiers.slice(0,1):rc.tiers;
+  const sorted=tiers.map(t=>({...t,min:parseFloat(t.min)})).filter(t=>!isNaN(t.min)).sort((a,b)=>a.min-b.min);
+  const ranges=sorted.length?[`<div><span class="num">Below ${fmtNum(sorted[0].min)}%</span> · no reward</div>`].concat(sorted.map((t,i)=>{const nx=sorted[i+1];return `<div><span class="num">${fmtNum(t.min)}–${nx?fmtNum(Math.max(t.min,nx.min-0.01)):'100'}%</span> · ${esc(t.name||'(unnamed)')}</div>`;})).join(''):'';
+  return `<header class="wk"><div><div class="eyebrow">What a good week earns</div><h1>Rewards</h1></div></header>
+  <section class="panel pad" style="display:flex;flex-direction:column;gap:12px"><fieldset><legend>Reward system</legend><div class="seg">
+    <label class="opt"><input type="radio" name="r-mode" value="single" data-chg="rmode" ${rc.mode==='single'?'checked':''}><span>One threshold</span></label>
+    <label class="opt"><input type="radio" name="r-mode" value="tiers" data-chg="rmode" ${rc.mode==='tiers'?'checked':''}><span>Several tiers</span></label></div></fieldset>
+    <p class="note">Each tier starts at its minimum score and runs up to the next tier, so ranges never overlap and every score maps to exactly one outcome. Finalized weeks keep the tiers they were judged with.</p></section>
+  <section class="panel">${tiers.map((t,i)=>`<div class="tier"><label class="f">Minimum %<input type="number" id="t-min-${t.id}" data-tier="${t.id}" data-k="min" min="0" max="100" step="0.01" value="${esc(t.min)}"></label>
+    <label class="f">Reward name<input type="text" id="t-name-${t.id}" data-tier="${t.id}" data-k="name" value="${esc(t.name)}"></label>
+    <label class="f wide">Description<input type="text" id="t-desc-${t.id}" data-tier="${t.id}" data-k="desc" value="${esc(t.desc)}"></label>
+    <div class="row" style="align-self:end">${rc.mode==='tiers'&&tiers.length>1?`<button class="btn sm danger" data-act="tierdel" data-id="${t.id}">Remove</button>`:''}</div>
+    <label class="f wide" style="grid-column:1 / -1">Notes (optional)<input type="text" id="t-notes-${t.id}" data-tier="${t.id}" data-k="notes" value="${esc(t.notes||'')}"></label></div>`).join('')}
+    <div class="ranges"><div class="eyebrow" style="margin-bottom:4px">Resulting ranges</div>${ranges}</div>
+    <p class="err pad" id="r-err" style="padding-top:0"></p>
+    <div class="row pad" style="border-top:1px solid var(--line)">${rc.mode==='tiers'?'<button class="btn" data-act="tieradd">Add tier</button>':''}<span class="spacer"></span><button class="btn ghost" data-act="rreset">Discard changes</button><button class="btn primary" data-act="rsave">Save rewards</button></div>
+  </section>`;
+}
+
+function vSettings(){
+  const st=S.meta.settings,nW=Object.keys(S.weeks).length;
+  return `<header class="wk"><div><div class="eyebrow">Preferences and data</div><h1>Settings & backup</h1></div></header>
+  <div class="set-grid">
+   <section class="panel pad"><h2 style="font-size:17px">General</h2>
+    <label class="f">Week starts on<select id="s-ws" data-chg="weekstart">${[6,0,1].map(d=>`<option value="${d}" ${st.weekStart===d?'selected':''}>${WDL[d]}</option>`).join('')}</select></label>
+    <p class="note">Changing this affects weeks you plan from now on. Existing weeks keep their dates.</p>
+    <label class="f">Theme<select id="s-theme" data-chg="theme"><option value="dark" ${st.theme==='dark'?'selected':''}>Dark</option><option value="light" ${st.theme==='light'?'selected':''}>Light</option><option value="system" ${st.theme==='system'?'selected':''}>Match system</option></select></label>
+   </section>
+   <section class="panel pad" style="grid-column:1 / -1"><h2 style="font-size:17px">Sync between your devices</h2>
+    ${S.kv.kind==='mem'?'<p><b>This browser is blocking storage.</b> Changes will be lost when you close the page. Export a backup before leaving.</p>':''}
+    ${Sync.on()?`<div id="sync-info">${syncInfoHtml()}</div>
+    <p class="note">Everything is encrypted on this device with your passphrase before it is uploaded. GitHub only stores unreadable data.</p>
+    <div class="row"><button class="btn primary" data-act="syncnow">Sync now</button><button class="btn" data-act="pair">Add another device</button><button class="btn ghost" data-act="synctoken">Replace token</button><button class="btn ghost" data-act="syncoff">Turn off on this device</button></div>`:
+    `<p>Keep your laptop and phone in sync, free and private, through a <b>private GitHub repository</b> that only you can see. Your data is encrypted on this device with your passphrase before it leaves, so even GitHub cannot read it.</p>
+    <details class="note"><summary style="cursor:pointer">How to set it up (5 minutes, first device only)</summary>
+     <ol style="margin:8px 0 0 18px;display:flex;flex-direction:column;gap:4px">
+      <li>On github.com, create a new repository, e.g. <b>weekmark-data</b>, and set it to <b>Private</b>.</li>
+      <li>Open <b>Settings › Developer settings › Personal access tokens › Fine-grained tokens › Generate new token</b>.</li>
+      <li>Repository access: <b>Only select repositories</b> › pick weekmark-data. Permissions › Repository › <b>Contents: Read and write</b>. Pick the longest expiry.</li>
+      <li>Copy the token, paste it below with the repository name, choose a passphrase you will remember, and connect.</li>
+      <li>On your phone, don’t repeat this: use <b>Add another device</b> on this device and scan the code.</li>
+     </ol></details>
+    <div class="g2" style="margin-top:6px"><label class="f">Private repository<input type="text" id="sy-repo" placeholder="your-github-name/weekmark-data" autocomplete="off" autocapitalize="off" spellcheck="false"></label>
+    <label class="f">Access token<input type="password" id="sy-token" placeholder="github_pat_…" autocomplete="off"></label></div>
+    <label class="f">Encryption passphrase<input type="password" id="sy-pass" autocomplete="new-password" placeholder="At least 8 characters"></label>
+    <p class="note">The passphrase never leaves your devices. If you forget it, the synced copy can’t be read, but the data on each device stays.</p>
+    <p class="err" id="sy-err"></p>
+    <div class="row"><button class="btn primary" data-act="syncon" id="sy-go">Connect</button></div>`}
+    <p class="note" id="s-usage">${nW} week${nW===1?'':'s'}, ${S.meta.defs.length} recurring task${S.meta.defs.length===1?'':'s'}, ${S.meta.templates.length} template${S.meta.templates.length===1?'':'s'}.</p>
+   </section>
+   <section class="panel pad"><h2 style="font-size:17px">Export backup</h2>
+    <p class="note">A versioned JSON file with every task, recurrence rule, template, reward setting and week.</p>
+    <div class="row">${window.WG_ARTIFACT?'':'<button class="btn primary" data-act="export">Download backup</button>'}<button class="btn${window.WG_ARTIFACT?' primary':''}" data-act="copyexport">Copy backup text</button></div>
+    <textarea id="exp-out" readonly hidden aria-label="Backup JSON"></textarea>
+   </section>
+   <section class="panel pad"><h2 style="font-size:17px">Restore backup</h2>
+    <p class="note">Choose a backup file or paste its text. It is checked before anything changes.</p>
+    <input type="file" id="imp-file" accept="application/json,.json" data-chg="impfile" style="font-size:13px">
+    <textarea id="imp-text" placeholder="Or paste backup JSON here"></textarea>
+    <div class="row"><button class="btn" data-act="impcheck">Check backup</button></div>
+    <div id="imp-res"></div>
+   </section>
+   <section class="panel pad" style="grid-column:1 / -1"><h2 style="font-size:17px">Danger zone</h2>
+    <div class="row"><p class="note" style="flex:1;min-width:220px">Delete every week, task, template and reward setting${Sync.on()?' on every synced device':' on this device'}. Export a backup first.</p><button class="btn danger" data-act="wipe">Delete all data</button></div>
+   </section>
+  </div>`;
+}
+
+/* ---------- editor ---------- */
+function defaultCfg(type){return {name:'',notes:'',category:'',type:type||'check',days:[0,1,2,3,4,5,6],op:'>=',target:type==='occ'?3:1,unit:'',scoring:'pass',tolerance:0,weight:1};}
+function openEditor(ctx){
+  // ctx: {mode:'new'|'inst'|'def'|'newdef', ws, instId, defId}
+  let cfg,rec,def=null,inst=null;const ws=ctx.ws||S.ws;
+  if(ctx.mode==='inst'){inst=S.weeks[ws].instances.find(i=>i.id===ctx.instId);cfg=clone(inst.cfg);def=inst.defId&&defById(inst.defId);rec=def?clone(def.rec):{kind:'once',start:ws};}
+  else if(ctx.mode==='def'){def=defById(ctx.defId);cfg=clone(def.cfg);rec=clone(def.rec);}
+  else{cfg=defaultCfg('check');rec={kind:ctx.mode==='newdef'?'forever':'once',start:ws,weeks:12,end:addDays(ws,7*8+6)};}
+  if(!rec.weeks)rec.weeks=12;if(!rec.end)rec.end=addDays(rec.start||ws,7*8+6);
+  S.editor={ctx,ws,instId:ctx.instId,defId:def&&def.id};
+  const cats=[...new Set(CATS.concat(S.meta.defs.map(d=>d.cfg.category)).concat(Object.values(S.weeks).flatMap(w=>w.instances.map(i=>i.cfg.category))).filter(Boolean))];
+  const title={new:'New task',inst:'Edit task',def:'Edit recurring task',newdef:'New recurring task'}[ctx.mode];
+  const ord=orderDays([0,1,2,3,4,5,6]);
+  let scope='';
+  if(ctx.mode==='inst'&&def&&S.weeks[ws].status!=='final')scope=`<fieldset class="sub-sec"><legend>Apply changes to</legend><div class="seg">
+    <label class="opt"><input type="radio" name="f-scope" value="this" checked data-chg="edvis"><span>Only this week</span></label>
+    <label class="opt"><input type="radio" name="f-scope" value="thisfuture" data-chg="edvis"><span>This and future weeks</span></label>
+    <label class="opt"><input type="radio" name="f-scope" value="future" data-chg="edvis"><span>Future weeks only</span></label></div><p class="note">Past and finalized weeks keep their settings.</p></fieldset>`;
+  if(ctx.mode==='inst'&&S.weeks[ws].status==='final')scope=`<p class="note sub-sec">This week is finalized. Changes apply to this week only and the score will be recalculated.</p>`;
+  if(ctx.mode==='def')scope=`<fieldset class="sub-sec"><legend>Apply changes from</legend><div class="seg">
+    <label class="opt"><input type="radio" name="f-scope" value="thisfuture" checked><span>This week (${esc(wkLabel(weekStartOf(today())))})</span></label>
+    <label class="opt"><input type="radio" name="f-scope" value="future"><span>Next week</span></label></div><p class="note">Finalized weeks and earlier weeks are never changed.</p></fieldset>`;
+  const showRec=!(ctx.mode==='inst'&&S.weeks[ws].status==='final');
+  const html=`<form id="ed" novalidate><header class="dlg-h"><h2>${title}</h2><button type="button" class="icon" data-act="closedlg" aria-label="Close">×</button></header>
+  <div class="dlg-b">
+    <label class="f">Task name<input type="text" id="f-name" name="f-name" value="${esc(cfg.name)}" placeholder="e.g. Drink water" maxlength="120" required></label><p class="err" id="e-name"></p>
+    <fieldset><legend>How is it measured?</legend><div class="types">${Object.entries(TYPES).map(([k,t])=>`<label class="opt"><input type="radio" name="f-type" value="${k}" ${cfg.type===k?'checked':''} data-chg="edvis"><span>${t.label}<small>${t.hint}</small></span></label>`).join('')}</div></fieldset>
+    <fieldset data-for="check daily_num"><legend>Scheduled days</legend><div class="days-pick">${ord.map(d=>`<label class="opt"><input type="checkbox" name="f-day" value="${d}" ${(cfg.days||[]).includes(d)?'checked':''}><span>${WD[d]}</span></label>`).join('')}</div><p class="note">Days that are not scheduled never count as missed.</p><p class="err" id="e-days"></p></fieldset>
+    <div data-for="daily_num week_num occ" class="g3">
+      <label class="f">Rule<select id="f-op" name="f-op" data-chg="edvis">${Object.entries(OPWORD).map(([k,l])=>`<option value="${k}" ${cfg.op===k?'selected':''}>${l}</option>`).join('')}</select></label>
+      <label class="f">Target<input type="number" id="f-target" name="f-target" step="any" min="0" value="${esc(cfg.target)}"></label>
+      <label class="f" data-for="daily_num week_num">Unit<input type="text" id="f-unit" name="f-unit" value="${esc(cfg.unit)}" placeholder="L, minutes, pages" list="units"><datalist id="units">${['minutes','hours','pages','L','steps','km','EGP','videos'].map(u=>`<option value="${u}">`).join('')}</datalist></label>
+    </div><p class="err" id="e-target"></p>
+    <div data-for="daily_num week_num occ" class="g2">
+      <label class="f">Scoring<select id="f-scoring" name="f-scoring"><option value="pass" ${cfg.scoring!=='prop'?'selected':''}>Pass / fail</option><option value="prop" ${cfg.scoring==='prop'?'selected':''}>Partial credit</option></select></label>
+      <label class="f" data-op="=">Tolerance (±)<input type="number" id="f-tol" name="f-tol" step="any" min="0" value="${esc(cfg.tolerance||0)}"></label>
+    </div>
+    <div class="g2"><label class="f">Category<input type="text" id="f-cat" name="f-cat" value="${esc(cfg.category)}" list="cats" placeholder="Fitness"><datalist id="cats">${cats.map(c=>`<option value="${esc(c)}">`).join('')}</datalist></label>
+      <label class="f">Importance weight<input type="number" id="f-weight" name="f-weight" step="any" min="0.1" value="${esc(cfg.weight||1)}"></label></div><p class="err" id="e-weight"></p>
+    <label class="f">Notes (optional)<textarea id="f-notes" name="f-notes" style="min-height:60px">${esc(cfg.notes)}</textarea></label>
+    ${scope}
+    ${showRec?`<fieldset class="sub-sec" id="recsec"><legend>Repeats</legend><div class="seg">
+      ${ctx.mode==='def'||ctx.mode==='newdef'?'':`<label class="opt"><input type="radio" name="f-rec" value="once" ${rec.kind==='once'?'checked':''} data-chg="edvis"><span>This week only</span></label>`}
+      <label class="opt"><input type="radio" name="f-rec" value="forever" ${rec.kind==='forever'?'checked':''} data-chg="edvis"><span>Every week</span></label>
+      <label class="opt"><input type="radio" name="f-rec" value="count" ${rec.kind==='count'?'checked':''} data-chg="edvis"><span>For a number of weeks</span></label>
+      <label class="opt"><input type="radio" name="f-rec" value="until" ${rec.kind==='until'?'checked':''} data-chg="edvis"><span>Until a date</span></label></div>
+      <div class="g2">${ctx.mode==='newdef'?`<label class="f">Starting week<input type="date" id="f-start" name="f-start" value="${rec.start}"></label>`:''}
+      <label class="f" data-rec="count">Number of weeks (this week is week 1)<input type="number" id="f-weeks" name="f-weeks" min="1" step="1" value="${esc(rec.weeks)}"></label>
+      <label class="f" data-rec="until">Last date<input type="date" id="f-until" name="f-until" value="${esc(rec.end)}"></label></div><p class="err" id="e-rec"></p></fieldset>`:''}
+  </div>
+  <footer class="dlg-f"><button type="button" class="btn ghost" data-act="closedlg">Cancel</button><button type="submit" class="btn primary">Save task</button></footer></form>`;
+  openDlg(html);edVis();
+}
+function edVis(){const f=$('#ed');if(!f)return;const type=f.elements['f-type'].value;const op=f.elements['f-op']?f.elements['f-op'].value:'>=';
+  $$('[data-for]',f).forEach(el=>{el.hidden=!el.dataset.for.split(' ').includes(type);});
+  $$('[data-op]',f).forEach(el=>{el.hidden=op!==el.dataset.op;});
+  const sc=f.elements['f-scope'];const scope=sc?sc.value:'';
+  const rs=$('#recsec',f);if(rs)rs.hidden=scope==='this';
+  const rk=f.elements['f-rec']?f.elements['f-rec'].value:'';
+  $$('[data-rec]',f).forEach(el=>{el.hidden=el.dataset.rec!==rk;});
+}
+function saveEditor(){
+  const f=$('#ed'),E=S.editor;if(!f||!E)return;
+  const g=n=>f.elements[n];const err={};
+  $$('.err',f).forEach(e=>e.textContent='');
+  const type=g('f-type').value;
+  const cfg={name:g('f-name').value.trim(),notes:g('f-notes').value.trim(),category:g('f-cat').value.trim(),type,
+    days:isDaily(type)?$$('input[name=f-day]:checked',f).map(x=>+x.value).sort():[0,1,2,3,4,5,6],
+    op:isNum(type)?g('f-op').value:'>=',target:isNum(type)?parseFloat(g('f-target').value):1,unit:type==='occ'?'':(isNum(type)?g('f-unit').value.trim():''),
+    scoring:isNum(type)?g('f-scoring').value:'pass',tolerance:isNum(type)&&g('f-op').value==='='?(parseFloat(g('f-tol').value)||0):0,weight:parseFloat(g('f-weight').value)};
+  if(!cfg.name)err.name='Give the task a name.';
+  if(isDaily(type)&&!cfg.days.length)err.days='Pick at least one day.';
+  if(isNum(type)&&(isNaN(cfg.target)||cfg.target<0))err.target='Enter a target of 0 or more.';
+  if(type==='occ'&&!isNaN(cfg.target)&&Math.round(cfg.target)!==cfg.target)err.target='Times per week must be a whole number.';
+  if(cfg.tolerance<0)err.target='Tolerance cannot be negative.';
+  if(isNaN(cfg.weight)||cfg.weight<=0)err.weight='Weight must be greater than 0.';
+  const scope=g('f-scope')?g('f-scope').value:null;
+  let rec=null;
+  if(g('f-rec')&&!(scope==='this')){const kind=g('f-rec').value;rec={kind};
+    const startIn=g('f-start')?g('f-start').value:null;
+    if(kind==='count'){rec.weeks=parseInt(g('f-weeks').value,10);if(!(rec.weeks>=1))err.rec='Enter 1 or more weeks.';}
+    if(kind==='until'){rec.end=g('f-until').value;if(!/^\d{4}-\d{2}-\d{2}$/.test(rec.end||''))err.rec='Pick the last date.';}
+    if(startIn!==null){if(!/^\d{4}-\d{2}-\d{2}$/.test(startIn))err.rec='Pick a starting week.';else rec.start=weekStartOf(startIn);}
+  }
+  const keys=Object.keys(err);
+  if(keys.length){keys.forEach(k=>{const el=$('#e-'+k,f);if(el)el.textContent=err[k];});const first=$('#e-'+keys[0],f);if(first)first.scrollIntoView({block:'center',behavior:'smooth'});return;}
+  const ctx=E.ctx,ws=E.ws,thisW=weekStartOf(today());
+  const mkDef=(start)=>{const d={id:uid(),cfg:clone(cfg),rec:Object.assign({start},rec),status:'active',created:Date.now()};
+    if(d.rec.kind==='until'&&d.rec.end<d.rec.start){return null;}S.meta.defs.push(d);markMeta();return d;};
+  if(rec&&rec.kind==='until'){const st=rec.start||(ctx.mode==='def'?defById(E.defId).rec.start:ws);if(rec.end<st){const el=$('#e-rec',f);el.textContent='The last date must be on or after the start of the first week.';return;}}
+  if(ctx.mode==='new'||ctx.mode==='newdef'){
+    const start=rec.start||ws;
+    if(ctx.mode==='new'&&rec.kind==='once'){const w=S.weeks[ws]||newWeek(ws);addInst(w,cfg,null);markWeek(ws);}
+    else{if(ctx.mode==='new'&&!S.weeks[ws])newWeek(ws);const d=mkDef(start);syncDef(d,start);}
+    toast('Task added');
+  }else if(ctx.mode==='inst'){
+    const w=S.weeks[ws],inst=w.instances.find(i=>i.id===E.instId),def=inst.defId&&defById(inst.defId);
+    if(w.status==='final'){inst.cfg=cfg;inst.custom=true;markWeek(ws);recalcFinal(ws);}
+    else if(!def){inst.cfg=cfg;if(rec&&rec.kind!=='once'){const d=mkDef(ws);inst.defId=d.id;syncDef(d,addDays(ws,7));}markWeek(ws);}
+    else if(scope==='this'){inst.cfg=cfg;inst.custom=true;markWeek(ws);}
+    else{def.cfg=clone(cfg);def.rec=Object.assign({},def.rec,rec,{start:def.rec.start});markMeta();
+      const from=scope==='thisfuture'?ws:addDays(ws,7);syncDef(def,from,{updateCfg:true});}
+    toast('Task updated');
+  }else if(ctx.mode==='def'){
+    const def=defById(E.defId);def.cfg=clone(cfg);def.rec=Object.assign({},def.rec,rec,{start:def.rec.start});markMeta();
+    syncDef(def,scope==='future'?addDays(thisW,7):thisW,{updateCfg:true});toast('Recurring task updated');
+  }
+  closeDlg();render();
+}
+
+/* ---------- actions ---------- */
+function curWeek(){return S.weeks[S.ws];}
+function findInst(id){const w=curWeek();return w&&w.instances.find(i=>i.id===id);}
+function setRecord(instId,d,v){const w=curWeek();if(!w)return;w.records[instId]=w.records[instId]||{};
+  if(v===null||v===''){delete w.records[instId][d];if(!Object.keys(w.records[instId]).length)delete w.records[instId];}
+  else w.records[instId][d]={v,t:Date.now()};
+  markWeek(w.start);if(w.status==='final')recalcFinal(w.start);}
+const A={
+  wk(b){const n=+b.dataset.n;S.ws=n===0?weekStartOf(today()):addDays(S.ws,n);S.ui.copySrc=null;render();},
+  go(b){location.hash=b.dataset.v;},
+  tog(b){const inst=findInst(b.dataset.i);if(!inst)return;const w=curWeek(),r=(w.records[inst.id]||{})[b.dataset.d];const on=r&&r.v;
+    if(inst.cfg.type==='once'&&!on){/* one completion is enough; clear others */}
+    setRecord(inst.id,b.dataset.d,on?null:true);render();},
+  plan(b){const mode=b.dataset.mode,ws=S.ws;let opt={};
+    if(mode==='copy'){opt={src:$('#copy-src').value,ids:$$('input[name=copy-task]:checked').map(x=>x.value),withRec:$('#copy-rec').checked};}
+    if(mode==='template'){opt={tpl:$('#tpl-src').value,withRec:$('#tpl-rec').checked};}
+    planWeek(ws,mode,opt);toast(`${wkLabel(ws)} planned`);render();},
+  addmissing(){const w=curWeek();S.meta.defs.forEach(d=>{if(applies(d,w.start))addDefToWeek(w,d);});markWeek(w.start);render();},
+  newtask(){openEditor({mode:'new',ws:S.ws});},
+  newdef(){openEditor({mode:'newdef',ws:weekStartOf(today())});},
+  edit(b){openEditor({mode:'inst',ws:S.ws,instId:b.dataset.i});},
+  editdef(b){openEditor({mode:'def',defId:b.dataset.id});},
+  closedlg(){closeDlg();},
+  dup(b){const w=curWeek(),i=findInst(b.dataset.i);const c=clone(i.cfg);c.name=c.name+' (copy)';const n={id:uid(),defId:null,cfg:c,status:'active'};w.instances.splice(w.instances.indexOf(i)+1,0,n);markWeek(w.start);if(w.status==='final')recalcFinal(w.start);toast('Duplicated as a one-week task');render();},
+  arch(b){const w=curWeek(),i=findInst(b.dataset.i);i.status=i.status==='archived'?'active':'archived';markWeek(w.start);if(w.status==='final')recalcFinal(w.start);render();},
+  move(b){const w=curWeek(),i=findInst(b.dataset.i),ix=w.instances.indexOf(i),j=ix+(+b.dataset.n);if(j<0||j>=w.instances.length)return;w.instances.splice(ix,1);w.instances.splice(j,0,i);markWeek(w.start);render();const el=$(`[data-act=move][data-i="${i.id}"][data-n="${b.dataset.n}"]`);if(el&&!el.disabled)el.focus();},
+  async delinst(b){const w=curWeek(),i=findInst(b.dataset.i);const def=i.defId&&defById(i.defId);
+    const ok=await ask({title:`Delete “${i.cfg.name}” from this week?`,body:`Its entries for this week are removed.${def?' The recurring task keeps going in other weeks; stop it from Recurring tasks.':''}`,ok:'Delete',danger:true});if(!ok)return;
+    snap('delete task');w.instances=w.instances.filter(x=>x!==i);delete w.records[i.id];if(i.defId)w.skip[i.defId]=true;markWeek(w.start);if(w.status==='final')recalcFinal(w.start);toast('Task deleted',{undo:true});render();},
+  async delweek(){const w=curWeek();const ok=await ask({title:`Delete the plan for ${wkLabel(w.start)}?`,body:'All tasks and entries in this week are removed. Recurring tasks and other weeks are not affected.',ok:'Delete week',danger:true});if(!ok)return;
+    snap('delete week');delete S.weeks[w.start];markWeek(w.start);toast('Week deleted',{undo:true});render();},
+  async finalize(){const ws=S.ws,w=curWeek(),early=today()<=addDays(ws,6);
+    if(early){const ok=await ask({title:'Finalize this week early?',body:'Days that have not happened yet will count as not completed.',ok:'Finalize now'});if(!ok)return;}
+    finalizeWeek(ws);showFinalSummary(ws);render();},
+  finalizews(b){S.ws=b.dataset.ws;finalizeWeek(S.ws);showFinalSummary(S.ws);render();},
+  openweek(b){S.ws=b.dataset.ws;location.hash='dashboard';if(S.view==='dashboard')render();},
+  explain(){const w=curWeek();const r=scoreWeek(w,false);
+    openDlg(`<form method="dialog"><header class="dlg-h"><h2>How the score is calculated</h2><button type="button" class="icon" data-act="closedlg" aria-label="Close">×</button></header><div class="dlg-b">
+    <p>Score = earned weight ÷ eligible weight × 100. Each task contributes its importance weight times its credit (0 to 1).</p>
+    <ul class="note" style="margin:0;padding-left:18px;display:flex;flex-direction:column;gap:4px"><li>Daily tasks: credit is the average over scheduled days that are due. Future days, and today until you log it, are left out.</li><li>Pass/fail gives full credit when the rule is met. Partial credit scales with progress; for limits (≤, &lt;) credit falls as you go over, reaching 0 at double the limit.</li><li>Weekly totals, times-per-week and once-a-week tasks are pending until the week ends unless you choose to count them now.</li></ul>
+    <div class="tbl-wrap"><table class="t"><thead><tr><th>Task</th><th class="n">Weight</th><th class="n">Credit</th><th class="n">Earned</th></tr></thead><tbody>${r.per.map(p=>`<tr><td>${esc(p.inst.cfg.name)}</td><td class="n">${fmtNum(+p.inst.cfg.weight||1)}</td><td class="n">${p.r.eligible?Math.round(p.r.frac*100)+'%':'pending'}</td><td class="n">${p.r.eligible?fmtNum((+p.inst.cfg.weight||1)*p.r.frac):'—'}</td></tr>`).join('')}
+    <tr><td><b>Total</b></td><td class="n">${fmtNum(r.elig)}</td><td></td><td class="n">${fmtNum(r.earned)}</td></tr></tbody></table></div>
+    <p><b class="num">${fmtNum(r.earned)} ÷ ${fmtNum(r.elig)} = ${fmtPct(r.score)}%</b></p></div><footer class="dlg-f"><button type="button" class="btn primary" data-act="closedlg">Close</button></footer></form>`);},
+  async savetpl(){const w=curWeek();if(!w)return;
+    openDlg(`<form id="tplform" novalidate><header class="dlg-h"><h2>Save as template</h2><button type="button" class="icon" data-act="closedlg" aria-label="Close">×</button></header><div class="dlg-b">
+    <label class="f">Template name<input type="text" id="tpl-name" value="${esc('Week like '+fmtD(w.start))}"></label><p class="err" id="e-tpl"></p>
+    <fieldset><legend>Tasks to include (settings only, no entries)</legend>${w.instances.map(i=>`<label class="chk"><input type="checkbox" name="tpl-task" value="${i.id}" checked> ${esc(i.cfg.name)}</label>`).join('')}</fieldset></div>
+    <footer class="dlg-f"><button type="button" class="btn ghost" data-act="closedlg">Cancel</button><button type="submit" class="btn primary">Save template</button></footer></form>`);},
+  applytpl(){const t=S.meta.templates;openDlg(`<form id="applyform"><header class="dlg-h"><h2>Add tasks from a template</h2><button type="button" class="icon" data-act="closedlg" aria-label="Close">×</button></header><div class="dlg-b"><label class="f">Template<select id="ap-tpl">${t.map(x=>`<option value="${x.id}">${esc(x.name)} (${x.tasks.length})</option>`).join('')}</select></label><p class="note">Tasks are added to ${esc(wkLabel(S.ws))} as one-week tasks.</p></div><footer class="dlg-f"><button type="button" class="btn ghost" data-act="closedlg">Cancel</button><button type="submit" class="btn primary">Add tasks</button></footer></form>`);},
+  tplapply(b){const t=S.meta.templates.find(x=>x.id===b.dataset.id);const w=S.weeks[S.ws]||newWeek(S.ws);t.tasks.forEach(c=>addInst(w,c,null));markWeek(S.ws);if(w.status==='final')recalcFinal(S.ws);toast(`${t.tasks.length} tasks added to ${wkLabel(S.ws)}`);render();},
+  async tplrename(b){const t=S.meta.templates.find(x=>x.id===b.dataset.id);const v=await ask({title:'Rename template',input:'New name',ok:'Rename'});if(typeof v==='string'){t.name=v;markMeta();render();}},
+  async tpldel(b){const t=S.meta.templates.find(x=>x.id===b.dataset.id);const ok=await ask({title:`Delete template “${t.name}”?`,body:'Weeks planned from it are not affected.',ok:'Delete',danger:true});if(!ok)return;snap();S.meta.templates=S.meta.templates.filter(x=>x!==t);markMeta();toast('Template deleted',{undo:true});render();},
+  tplrm(b){const t=S.meta.templates.find(x=>x.id===b.dataset.id);snap();t.tasks.splice(+b.dataset.n,1);markMeta();toast('Removed from template',{undo:true});render();},
+  stopdef(b){const d=defById(b.dataset.id),cur=weekStartOf(today());
+    openDlg(`<form id="stopform" novalidate><header class="dlg-h"><h2>Stop “${esc(d.cfg.name)}”</h2><button type="button" class="icon" data-act="closedlg" aria-label="Close">×</button></header><div class="dlg-b">
+    <input type="hidden" id="stop-id" value="${d.id}">
+    <div class="seg"><label class="opt"><input type="radio" name="stop-k" value="after" checked><span>After this week (${esc(fmtRange(cur))})</span></label><label class="opt"><input type="radio" name="stop-k" value="from"><span>From a later week</span></label></div>
+    <label class="f">First week without it<input type="date" id="stop-date" value="${addDays(cur,14)}"></label><p class="err" id="e-stop"></p>
+    <p class="note">Weeks that already have entries for this task keep them.</p></div>
+    <footer class="dlg-f"><button type="button" class="btn ghost" data-act="closedlg">Cancel</button><button type="submit" class="btn primary">Stop repeating</button></footer></form>`);},
+  archdef(b){const d=defById(b.dataset.id);const cur=weekStartOf(today());d.status=d.status==='active'?'archived':'active';markMeta();syncDef(d,cur);toast(d.status==='active'?'Restored':'Archived. History is kept.');render();},
+  async deldef(b){const d=defById(b.dataset.id);const ok=await ask({title:`Delete recurring task “${d.cfg.name}”?`,body:'Past weeks keep their copies and results. Upcoming weeks without entries for it lose it.',ok:'Delete',danger:true});if(!ok)return;
+    snap();const cur=weekStartOf(today());d.status='deleted';syncDef(d,cur);S.meta.defs=S.meta.defs.filter(x=>x!==d);markMeta();toast('Recurring task deleted',{undo:true});render();},
+  tieradd(){const rc=S.ui.rdraft;const mx=Math.max(...rc.tiers.map(t=>+t.min||0));rc.tiers.push({id:uid(),min:Math.min(100,mx+5),name:'New reward',desc:'',notes:''});render();},
+  tierdel(b){S.ui.rdraft.tiers=S.ui.rdraft.tiers.filter(t=>t.id!==b.dataset.id);render();},
+  rreset(){S.ui.rdraft=null;render();},
+  rsave(){const rc=S.ui.rdraft;const tiers=rc.mode==='single'?rc.tiers.slice(0,1):rc.tiers;const e=[];const mins=new Set();
+    tiers.forEach(t=>{t.min=parseFloat(t.min);if(isNaN(t.min)||t.min<0||t.min>100)e.push(`“${t.name||'Unnamed'}” needs a minimum between 0 and 100.`);if(!String(t.name||'').trim())e.push('Every tier needs a name.');if(mins.has(t.min))e.push(`Two tiers start at ${t.min}%. Each tier needs its own minimum.`);mins.add(t.min);});
+    if(e.length){$('#r-err').textContent=[...new Set(e)].join(' ');return;}
+    if(rc.mode==='single')rc.tiers=rc.tiers.slice(0,1);
+    rc.tiers.sort((a,b)=>a.min-b.min);S.meta.rewards=clone(rc);S.ui.rdraft=null;markMeta();toast('Rewards saved. They apply to weeks you finalize from now on.');render();},
+  export(){const blob=new Blob([JSON.stringify(backupObj(),null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`weekmark-backup-${today()}.json`;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},1000);
+    lsSet('wm-lastexport',today());toast('Backup downloaded. If nothing downloaded, use Copy backup text.');},
+  copyexport(){const ta=$('#exp-out');ta.value=JSON.stringify(backupObj());ta.hidden=false;
+    const p=navigator.clipboard&&navigator.clipboard.writeText?navigator.clipboard.writeText(ta.value):Promise.reject();
+    p.then(()=>toast('Backup copied. Paste it into a .json file to keep it.')).catch(()=>{ta.select();toast('Backup text selected. Copy it with Ctrl+C or ⌘C.');});},
+  impcheck(){checkImport($('#imp-text').value);},
+  async impapply(b){const o=S.ui.imp;if(!o)return;const mode=b.dataset.mode;
+    if(mode==='replace'){const ok=await ask({title:'Replace all data with this backup?',body:'Every current week, task, template and setting is replaced. Type REPLACE to confirm.',input:'Confirmation',match:'REPLACE',ok:'Replace',danger:true});if(!ok)return;
+      snap();const old=Object.keys(S.weeks);S.meta=normMeta(clone(o.meta));S.weeks={};Object.entries(o.weeks).forEach(([k,w])=>{S.weeks[k]=normWeek(clone(w));});old.forEach(k=>S.dirty.add(wkey(k)));}
+    else{snap();let added=0,skipped=0;Object.entries(o.weeks).forEach(([k,w])=>{if(S.weeks[k]){skipped++;return;}S.weeks[k]=normWeek(clone(w));added++;});
+      o.meta.defs.forEach(d=>{if(!defById(d.id))S.meta.defs.push(clone(d));});o.meta.templates.forEach(t=>{if(!S.meta.templates.some(x=>x.id===t.id))S.meta.templates.push(clone(t));});toast(`Merged: ${added} weeks added, ${skipped} already here and kept.`,{undo:true});}
+    Object.keys(S.weeks).forEach(k=>S.dirty.add(wkey(k)));S.dirty.add('meta');schedule();S.ui.imp=null;if(mode==='replace')toast('Backup restored',{undo:true});render();},
+  async wipe(){const ok=await ask({title:'Delete all data?',body:'This removes every week, task, template and reward setting. Type DELETE to confirm.',input:'Confirmation',match:'DELETE',ok:'Delete everything',danger:true});if(!ok)return;
+    snap();Object.keys(S.weeks).forEach(k=>S.dirty.add(wkey(k)));S.weeks={};const th=S.meta.settings.theme,wsd=S.meta.settings.weekStart;S.meta=defaultMeta();S.meta.settings.theme=th;S.meta.settings.weekStart=wsd;markMeta();toast('All data deleted',{undo:true});render();},
+  async clearexample(){const ok=await ask({title:'Clear the example data?',body:'Removes the example tasks, weeks and rewards so you can start with an empty week.',ok:'Clear examples'});if(!ok)return;
+    snap();Object.keys(S.weeks).forEach(k=>S.dirty.add(wkey(k)));S.weeks={};const th=S.meta.settings.theme;S.meta=defaultMeta();S.meta.settings.theme=th;markMeta();S.ws=weekStartOf(today());toast('Examples cleared. Plan your first week below.',{undo:true});location.hash='dashboard';render();},
+  undo(){$('#toast').hidden=true;doUndo();},
+  retrysave(){Object.keys(S.weeks).forEach(k=>S.dirty.add(wkey(k)));S.dirty.add('meta');S.saveErr=null;schedule();render();},
+  async syncon(){const err=$('#sy-err'),btn=$('#sy-go');err.textContent='';btn.disabled=true;btn.textContent='Connecting…';
+    try{await connectDevice($('#sy-repo').value,$('#sy-token').value,$('#sy-pass').value);}
+    catch(e){err.textContent=e.message||String(e);}finally{if(btn.isConnected){btn.disabled=false;btn.textContent='Connect';}}},
+  async syncnow(){await Sync.run();toast(Sync.err?Sync.err:'Synced',{err:!!Sync.err});render();},
+  async syncoff(){const ok=await ask({title:'Turn off sync on this device?',body:'Your data stays on this device and in your private repository. Other devices keep syncing.',ok:'Turn off'});if(!ok)return;await Sync.disconnect();toast('Sync turned off on this device');render();},
+  async synctoken(){const v=await ask({title:'Replace access token',body:'Paste a new fine-grained token for '+esc(Sync.cfg.owner+'/'+Sync.cfg.repo)+' with Contents: Read and write.',input:'New token',ok:'Save token'});if(!v||v===true)return;
+    Sync.cfg.token=String(v).trim();lsSet('wm-sync',JSON.stringify(Sync.cfg));await Sync.run();toast(Sync.err||'Token saved and synced',{err:!!Sync.err});render();},
+  pair(){openDlg(`<form id="pairform" novalidate><header class="dlg-h"><h2>Add another device</h2><button type="button" class="icon" data-act="closedlg" aria-label="Close">×</button></header><div class="dlg-b">
+    <p>Type your passphrase to make a pairing code. The code is encrypted with it, so it is useless to anyone who doesn’t know the passphrase.</p>
+    <label class="f">Passphrase<input type="password" id="pr-pass" autocomplete="current-password"></label><p class="err" id="pr-err"></p><div id="pr-out"></div></div>
+    <footer class="dlg-f"><button type="button" class="btn ghost" data-act="closedlg">Close</button><button type="submit" class="btn primary" id="pr-go">Make pairing code</button></footer></form>`);},
+  async copypair(){const v=$('#pr-link').value;try{await navigator.clipboard.writeText(v);toast('Pairing link copied');}catch(e){$('#pr-link').select();toast('Link selected. Copy it with Ctrl+C or ⌘C.');}}
+};
+function showFinalSummary(ws){const w=S.weeks[ws],f=w.final;const done=f.tasks.filter(t=>t.frac>=1),miss=f.tasks.filter(t=>t.frac!=null&&t.frac<1);
+  openDlg(`<form method="dialog"><header class="dlg-h"><h2>${esc(wkLabel(ws))} finalized</h2><button type="button" class="icon" data-act="closedlg" aria-label="Close">×</button></header><div class="dlg-b">
+  <div class="row" style="align-items:baseline;gap:16px"><span class="big">${fmtPct(f.score)}<small>%</small></span><span>${f.tier?`Reward earned: <b>${esc(f.tier.name)}</b>${f.tier.desc?`<br><span class="note">${esc(f.tier.desc)}</span>`:''}`:'No reward this week.'}</span></div>
+  <div class="g2"><div><div class="eyebrow" style="margin-bottom:6px">Completed (${done.length})</div><div class="note" style="display:flex;flex-direction:column;gap:3px">${done.map(t=>`<span>✓ ${esc(t.name)}</span>`).join('')||'None'}</div></div>
+  <div><div class="eyebrow" style="margin-bottom:6px">Missed targets (${miss.length})</div><div class="note" style="display:flex;flex-direction:column;gap:3px">${miss.map(t=>`<span>${esc(t.name)} · ${Math.round(t.frac*100)}%</span>`).join('')||'None'}</div></div></div>
+  </div><footer class="dlg-f"><button type="button" class="btn primary" data-act="closedlg">Done</button></footer></form>`);}
+function backupObj(){return {app:APP,version:VERSION,exportedAt:new Date().toISOString(),meta:S.meta,weeks:S.weeks};}
+function validateBackup(o){const e=[];
+  if(!o||typeof o!=='object')return ['The file is not a JSON object.'];
+  if(o.app!==APP)e.push('This file was not exported from Weekmark.');
+  if(typeof o.version!=='number'||o.version>VERSION)e.push(`Backup version ${o.version} is not supported by this app version.`);
+  const m=o.meta;if(!m||!Array.isArray(m.defs)||!Array.isArray(m.templates)||!m.rewards||!Array.isArray(m.rewards.tiers))e.push('The settings section is missing or damaged.');
+  else{m.defs.forEach(d=>{if(!d.id||!d.cfg||typeof d.cfg.name!=='string'||!TYPES[d.cfg.type]||!d.rec)e.push(`Recurring task “${(d.cfg&&d.cfg.name)||'?'}” is damaged.`);});}
+  if(!o.weeks||typeof o.weeks!=='object'||Array.isArray(o.weeks))e.push('The weeks section is missing.');
+  else for(const [k,w] of Object.entries(o.weeks)){if(!/^\d{4}-\d{2}-\d{2}$/.test(k)||!w||w.start!==k||!Array.isArray(w.instances)||typeof w.records!=='object'){e.push(`Week ${k} is damaged.`);}
+    else if(w.instances.some(i=>!i.id||!i.cfg||typeof i.cfg.name!=='string'||!TYPES[i.cfg.type]))e.push(`A task in week ${k} is damaged.`);
+    else if(new Set(w.instances.map(i=>i.id)).size!==w.instances.length)e.push(`Week ${k} has duplicate tasks.`);
+    if(e.length>8)break;}
+  return e;}
+function checkImport(text){const box=$('#imp-res');S.ui.imp=null;let o;
+  try{o=JSON.parse(text);}catch(err){box.innerHTML=`<div class="banner err"><p>This is not valid JSON: ${esc(err.message)}</p></div>`;return;}
+  const e=validateBackup(o);if(e.length){box.innerHTML=`<div class="banner err"><p><b>Backup not accepted.</b> ${e.slice(0,6).map(esc).join(' ')}</p></div>`;return;}
+  S.ui.imp=o;const nW=Object.keys(o.weeks).length,dup=Object.keys(o.weeks).filter(k=>S.weeks[k]).length;
+  box.innerHTML=`<div class="banner"><p>Valid backup from ${esc((o.exportedAt||'').slice(0,10)||'unknown date')}: ${nW} weeks, ${o.meta.defs.length} recurring tasks, ${o.meta.templates.length} templates. ${dup?`${dup} of its weeks already exist here.`:''}</p>
+  <div class="row"><button class="btn sm" data-act="impapply" data-mode="merge">Merge (keep my weeks)</button><button class="btn sm danger" data-act="impapply" data-mode="replace">Replace all</button></div></div>`;}
+
+/* ---------- events ---------- */
+document.addEventListener('click',e=>{const b=e.target.closest('[data-act]');if(!b||b.disabled)return;const a=A[b.dataset.act];if(a){e.preventDefault();a(b,e);}});
+document.addEventListener('change',e=>{const t=e.target;
+  if(t.dataset&&t.dataset.num){let v=t.value.trim();if(v!==''){const n=parseFloat(v);if(isNaN(n)||n<0){toast('Enter a number of 0 or more.',{err:true});render();return;}v=n;}setRecord(t.dataset.i,t.dataset.d,v===''?null:v);render();return;}
+  if(t.dataset&&t.dataset.tier){const tr=S.ui.rdraft.tiers.find(x=>x.id===t.dataset.tier);tr[t.dataset.k]=t.dataset.k==='min'?t.value:t.value;render();return;}
+  const c=t.dataset&&t.dataset.chg;if(!c)return;
+  const w=curWeek();
+  switch(c){
+    case 'liveweekly':w.liveWeekly=t.checked;markWeek(w.start);render();break;
+    case 'reflection':w.reflection=t.value;markWeek(w.start);toast('Notes saved');break;
+    case 'claimed':w.claimed=t.checked;markWeek(w.start);toast(t.checked?'Marked as claimed':'Marked as not claimed');break;
+    case 'claimrow':{const ww=S.weeks[t.dataset.ws];ww.claimed=t.checked;markWeek(ww.start);break;}
+    case 'copysrc':S.ui.copySrc=t.value;render();break;
+    case 'edvis':{if(t.name==='f-type'&&t.value==='occ'){const tg=$('#f-target');if(tg&&(!tg.value||tg.value==='1'))tg.value='3';}edVis();break;}
+    case 'hyear':S.ui.histYear=t.value;render();break;
+    case 'hmonth':S.ui.histMonth=t.value;render();break;
+    case 'rmode':S.ui.rdraft.mode=t.value;render();break;
+    case 'weekstart':S.meta.settings.weekStart=+t.value;markMeta();S.ws=weekStartOf(today());toast('Week start updated');render();break;
+    case 'theme':S.meta.settings.theme=t.value;markMeta();applyTheme();break;
+    case 'impfile':{const f=t.files&&t.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{$('#imp-text').value=r.result;checkImport(r.result);};r.onerror=()=>toast('Could not read that file.',{err:true});r.readAsText(f);break;}
+  }});
+document.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.dataset&&e.target.dataset.num){e.preventDefault();e.target.blur();}});
+document.addEventListener('submit',e=>{const f=e.target;
+  if(f.id==='pairform'){e.preventDefault();makePair();return;}
+  if(f.id==='joinform'){e.preventDefault();joinFromPair();return;}
+  if(f.id==='ed'){e.preventDefault();saveEditor();}
+  else if(f.id==='tplform'){e.preventDefault();const name=$('#tpl-name').value.trim();if(!name){$('#e-tpl').textContent='Name the template.';return;}const ids=$$('input[name=tpl-task]:checked').map(x=>x.value);if(!ids.length){$('#e-tpl').textContent='Pick at least one task.';return;}
+    const w=curWeek();S.meta.templates.push({id:uid(),name,tasks:w.instances.filter(i=>ids.includes(i.id)).map(i=>clone(i.cfg)),created:Date.now()});markMeta();closeDlg();toast(`Template “${name}” saved`);render();}
+  else if(f.id==='applyform'){e.preventDefault();const id=$('#ap-tpl').value;closeDlg();A.tplapply({dataset:{id}});}
+  else if(f.id==='stopform'){e.preventDefault();const d=defById($('#stop-id').value),cur=weekStartOf(today());const k=f.elements['stop-k'].value;let end,from;
+    if(k==='after'){end=addDays(cur,6);from=addDays(cur,7);}else{const v=$('#stop-date').value;if(!v){$('#e-stop').textContent='Pick a date.';return;}from=weekStartOf(v);end=addDays(from,-1);if(from<=cur){$('#e-stop').textContent='Pick a week after this one.';return;}}
+    if(end<d.rec.start){$('#e-stop').textContent='That is before the task started. Delete or archive it instead.';return;}
+    d.rec={kind:'until',start:d.rec.start,end};markMeta();syncDef(d,from);closeDlg();toast(`“${d.cfg.name}” stops after ${fmtDY(end)}`);render();}
+});
+window.addEventListener('hashchange',route);
+function route(){const h=(location.hash||'').slice(1);S.view=VIEWS.some(v=>v[0]===h)?h:'dashboard';if(S.view!=='rewards')S.ui.rdraft=null;render();const m=$('#main');if(m)window.scrollTo(0,0);}
+let origTheme=null;
+function applyTheme(){const t=S.meta?S.meta.settings.theme:'dark',el=document.documentElement;if(origTheme===null)origTheme=el.getAttribute('data-theme')||'';
+  if(t==='system'){if(origTheme)el.setAttribute('data-theme',origTheme);else el.removeAttribute('data-theme');}else el.setAttribute('data-theme',t);
+  const m=document.querySelector('meta[name=theme-color]');if(m)m.content=getComputedStyle(el).getPropertyValue('--bg').trim()||'#0e1013';}
+
+/* ---------- example data ---------- */
+function rng(seed){return ()=>{seed|=0;seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return ((t^t>>>14)>>>0)/4294967296;};}
+function seedExample(){
+  const R=rng(42),T=today(),cur=weekStartOf(T),start=addDays(cur,-21);
+  const mk=(cfg,rec)=>{const d={id:uid(),cfg:Object.assign(defaultCfg(cfg.type),cfg),rec:Object.assign({start},rec),status:'active',created:Date.now()};S.meta.defs.push(d);return d;};
+  const water=mk({name:'Drink water',type:'daily_num',op:'>=',target:3,unit:'L',scoring:'prop',category:'Health'},{kind:'forever'});
+  const read=mk({name:'Read',type:'daily_num',op:'>=',target:30,unit:'minutes',scoring:'pass',category:'Learning',days:[0,1,2,3,4]},{kind:'forever'});
+  const screen=mk({name:'Phone screen time',type:'daily_num',op:'<=',target:2,unit:'hours',scoring:'prop',category:'Personal'},{kind:'forever'});
+  const bed=mk({name:'Make the bed',type:'check',category:'Personal'},{kind:'forever'});
+  const ex=mk({name:'Exercise',type:'occ',op:'>=',target:3,scoring:'prop',weight:2,category:'Fitness'},{kind:'count',weeks:12});
+  const study=mk({name:'Study AI',type:'week_num',op:'>=',target:5,unit:'hours',scoring:'prop',weight:2,category:'Learning'},{kind:'count',weeks:6});
+  const fin=mk({name:'Review finances',type:'once',category:'Finance'},{kind:'forever'});
+  S.meta.rewards={mode:'tiers',tiers:[{id:uid(),min:60,name:'Small reward',desc:'Favorite dessert',notes:''},{id:uid(),min:80,name:'Standard reward',desc:'Movie night out',notes:''},{id:uid(),min:95,name:'Premium reward',desc:'The book or game on your wish list',notes:''}]};
+  for(let k=0;k<4;k++){const ws=addDays(start,7*k);const w=planWeek(ws,'recurring',{});
+    const gi=d=>w.instances.find(i=>i.defId===d.id).id;const put=(d,day,v)=>{const id=gi(d);w.records[id]=w.records[id]||{};w.records[id][day]={v,t:Date.now()};};
+    const exDays=new Set();while(exDays.size<(R()<.3?2:3))exDays.add(Math.floor(R()*7));
+    const finDay=Math.floor(R()*7),finDone=R()<.75;
+    weekDays(ws).forEach((d,i)=>{if(d>=T)return;const wd=dow(d);
+      put(water,d,Math.round((2.1+R()*1.6)*10)/10);
+      if(read.cfg.days.includes(wd))put(read,d,Math.round(15+R()*35));
+      put(screen,d,Math.round((1.1+R()*2)*10)/10);
+      if(R()<.8)put(bed,d,true);
+      if(exDays.has(i))put(ex,d,1);
+      if(R()<.7)put(study,d,Math.round((.5+R()*1.2)*2)/2);
+      if(finDone&&i===finDay)put(fin,d,true);});
+    if(k<3)finalizeWeek(ws);
+    if(k===0)w.claimed=true;
+  }
+  S.weeks[addDays(start,14)].reflection='Good rhythm until Thursday; late nights pushed screen time up.';
+  S.meta.settings.example=true;markMeta();
+}
+
+/* ---------- boot ---------- */
+function gate(html){$('#root').innerHTML=`<div class="gate"><div class="panel">${html}</div></div>`;}
+async function startApp(kv){
+  if(S.started)return;S.started=true;S.kv=kv;
+  let data={};try{data=await kv.all();}catch(e){S.saveErr='Could not load saved data: '+(e.message||e);}
+  S.meta=normMeta(data.meta||null);
+  Object.entries(data).forEach(([k,v])=>{if(k.startsWith('week_')&&v&&v.start)S.weeks[v.start]=normWeek(v);});
+  await Sync.init(data._sync);
+  applyTheme();
+  const pair=(location.hash.match(/^#pair=([\w-]+)/)||[])[1];
+  if(pair)history.replaceState(null,'',location.pathname+location.search);
+  if(!data.meta&&!S.saveErr&&!pair&&!Sync.on()){seedExample();}
+  S.ws=weekStartOf(today());
+  shell();route();
+  if(pair)askJoin(pair);
+  if(Sync.on())Sync.run();
+  setInterval(()=>{if(Sync.on()&&document.visibilityState==='visible'&&!Sync.busy)Sync.run();},60000);
+  setInterval(()=>{if(Sync.on())paintSyncInfo();},30000);
+  document.addEventListener('visibilitychange',()=>{if(!Sync.on())return;if(document.visibilityState==='visible')Sync.run();else if(S.dirty.size||Sync.st.pending.length){flush().then(()=>Sync.run());}});
+  window.addEventListener('online',()=>{if(Sync.on())Sync.run();});
+  window.addEventListener('beforeunload',e=>{if(S.dirty.size){flush();}});
+}
+function localHasRealData(){return !S.meta.settings.example&&(Object.keys(S.weeks).length>0||S.meta.defs.length>0||S.meta.templates.length>0);}
+async function connectDevice(repo,token,pass){
+  if(!window.crypto||!crypto.subtle)throw new Error('This page must be opened over https to use encrypted sync.');
+  await flush();
+  const r=await Sync.connect(repo,token,pass);
+  let mode='upload';
+  if(r.hasData){
+    if(localHasRealData()){const ok=await ask({title:'Merge with your synced data?',body:'Your private repository already has Weekmark data from another device. It will be loaded here. Weeks that only exist on this device are added to it; where both have the same week or settings, the synced copy is kept. Export a backup first if unsure.',ok:'Connect and merge'});if(!ok)return false;mode='merge';}
+    else mode='download';}
+  await Sync.adopt(r,mode);
+  if(Sync.err)toast(Sync.err,{err:true});else toast(mode==='upload'?'Sync is on. This device’s data is now in your private repository.':'Sync is on. Your synced data is loaded.');
+  closeDlg();if(S.view!=='settings'&&mode!=='upload')location.hash='dashboard';S.ws=weekStartOf(today());render();return true;
+}
+async function makePair(){const err=$('#pr-err'),out=$('#pr-out'),btn=$('#pr-go'),pass=$('#pr-pass').value;err.textContent='';btn.disabled=true;
+  try{if(!(await Sync.verify(pass))){err.textContent='That is not the passphrase this device uses.';return;}
+    const link=await Sync.pairLink(pass);let qr='';
+    try{if(!window.qrcode)await loadScript('qrcode.js');const q=qrcode(0,'L');q.addData(link);q.make();qr=q.createSvgTag({cellSize:4,margin:4,scalable:true});}catch(e){}
+    out.innerHTML=`${qr?`<div style="background:#fff;border-radius:10px;padding:10px;max-width:260px;margin:4px auto">${qr}</div><p class="note" style="text-align:center">Scan with your phone’s camera, open the link, then type the same passphrase.</p>`:''}
+      <label class="f">Or send yourself this link<input type="text" id="pr-link" readonly value="${esc(link)}"></label><div class="row"><button type="button" class="btn sm" data-act="copypair">Copy link</button></div>
+      <p class="note">The link contains your access token, encrypted with your passphrase. Only share it with your own devices.</p>`;
+  }catch(e){err.textContent=e.message||String(e);}finally{btn.disabled=false;}}
+function askJoin(code){S.ui.pair=code;
+  openDlg(`<form id="joinform" novalidate><header class="dlg-h"><h2>Connect this device</h2><button type="button" class="icon" data-act="closedlg" aria-label="Close">×</button></header><div class="dlg-b">
+  <p>You opened a pairing link from your other device. Type your sync passphrase to start syncing here.</p>
+  ${Sync.on()?'<p class="note">This device already syncs. Connecting replaces that connection.</p>':''}
+  <label class="f">Passphrase<input type="password" id="jn-pass" autocomplete="current-password"></label><p class="err" id="jn-err"></p></div>
+  <footer class="dlg-f"><button type="button" class="btn ghost" data-act="closedlg">Not now</button><button type="submit" class="btn primary" id="jn-go">Connect</button></footer></form>`);}
+async function joinFromPair(){const err=$('#jn-err'),btn=$('#jn-go'),pass=$('#jn-pass').value;err.textContent='';btn.disabled=true;btn.textContent='Connecting…';
+  try{const p=await Sync.readPair(S.ui.pair,pass);if(Sync.on())await Sync.disconnect();
+    if(await connectDevice(p.o+'/'+p.r,p.t,pass))S.ui.pair=null;}
+  catch(e){err.textContent=e.message||String(e);}finally{if(btn.isConnected){btn.disabled=false;btn.textContent='Connect';}}}
+function loadScript(src){return new Promise((res,rej)=>{const s=document.createElement('script');s.src=src;s.onload=res;s.onerror=()=>rej(new Error('Could not load '+src));document.head.appendChild(s);});}
+async function boot(){
+  origTheme=document.documentElement.getAttribute('data-theme')||'';
+  document.documentElement.setAttribute('data-theme','dark');
+  if(/^https?:$/.test(location.protocol)&&'serviceWorker' in navigator){try{const l=document.createElement('link');l.rel='manifest';l.href='manifest.webmanifest';document.head.appendChild(l);navigator.serviceWorker.register('sw.js').catch(()=>{});}catch(e){}}
+  await LocalKV.open();await startApp(LocalKV);
+}
+boot();
+})();
+</script>
